@@ -7,6 +7,9 @@
     include 'config.php';
     require_once 'f_cetak_jual_item_helper.php';
     $connect=opendtcek();
+    if (!$connect) {
+        die('<div style="color:red;padding:20px;font-family:Arial">Koneksi database gagal, silakan coba beberapa saat lagi.</div>');
+    }
 ?>
 <style>
   body,h2,h3,h4,h5,h6 {font-family: Times,Helvetica}
@@ -76,7 +79,7 @@
         $kd_toko  = $_SESSION['id_toko'];
         $nm_toko  = "";$ket='';
         $brand_filter = mysqli_real_escape_string($connect, $brand_filter);
-        $allowed_brands = array('OMG','EMINA','WARDAH','MAKE OVER','KAHF','SKINTIFIC MARINA','G2G','HANASUI','SLAVINA','SCARLET','HADALABO','IMPLORA','VIVA','GLOW & LOVELY','PONDS','GARNIER','CUSSONS','NIVEA','PIXY','MAKARIZO','YOU','NYU','MIRANDA','DAZZLE ME','ANIMATE','MY BABY','MOELL','NPURE','SCORA','FACETOLOGY','JHONSONS','EUREKA','EVANGELINE','VITALIS','GATSBY','PUCELLE','ANDO','PRO ATT','CARVIL','BENING', 'LOGO','NEW ERA','SPEED','ARMOD','LUBRENA','VAUSTIN');
+        $allowed_brands = array('OMG','EMINA','WARDAH','MAKE OVER','KAHF','SKINTIFIC MARINA','G2G','GLAD2GLOW','HANASUI','SLAVINA','SCARLET','HADALABO','IMPLORA','VIVA','GLOW & LOVELY','PONDS','GARNIER','CUSSONS','NIVEA','PIXY','MAKARIZO','YOU','NYU','MIRANDA','DAZZLE ME','ANIMATE','MY BABY','MOELL','NPURE','SCORA','FACETOLOGY','JHONSONS','EUREKA','EVANGELINE','VITALIS','GATSBY','PUCELLE','ANDO','PRO ATT','CARVIL','BENING', 'LOGO','NEW ERA','SPEED','ARMOD','LUBRENA','VAUSTIN');
         if(!in_array($brand_filter, $allowed_brands)){
           $brand_filter = '';
         }
@@ -167,7 +170,7 @@
           } 
         }  
           
-          if(mysqli_num_rows($cek)>=1){
+          if($cek && mysqli_num_rows($cek)>=1){
             ?>
              
     	      <table cellspacing="0" style="width: 100%; font-size: 8pt;">
@@ -208,7 +211,7 @@
                   $totjual=$totjual+round($databay['tot_jual']);
                   $jumlah=round($databay['tot_jual']-$databay['tot_disc']);
       	      	  $totbeli=$totbeli+$jumlah;
-      	      	  $jml_brg=hitjmlbrg($databay['no_fakjual'],$databay['tgl_jual'],$kd_toko);
+      	      	  $jml_brg=hitjmlbrg($databay['no_fakjual'],$databay['tgl_jual'],$kd_toko,$connect);
                   $tot_disc=$tot_disc+$databay['tot_disc'];
       	      	  if($databay['trf']=='TRANSFER'){
                     if($databay['kd_bayar']=='TEMPO') {
@@ -231,7 +234,7 @@
                     }
                   }
       	      	  if($databay['kd_bayar']=="TEMPO"){
-                       $bayar=carisaldo($databay['no_fakjual'],$databay['tgl_jual'],$kd_toko); 
+                       $bayar=carisaldo($databay['no_fakjual'],$databay['tgl_jual'],$kd_toko,$connect); 
       	      	  }else{
       	      	  	$bayar=$databay['tot_jual'];
                     $dp=0; 
@@ -263,6 +266,7 @@
 
               // untuk data retur
               $totsub=0;$ret=0;$jmlsub=0;
+              if ($sqlret) {
               while($dret=mysqli_fetch_assoc($sqlret)){
                 $no++;
                 $ex=explode(' ',$dret['execut']);
@@ -316,6 +320,7 @@
 
                   </tr>
                 <?php
+              }
               }
     	        ?>
     	        <tr class="yz-theme-l3">
@@ -374,12 +379,13 @@
                 <?php
                 $totbag=$totrt=0;
                 $sqlbag=mysqli_query($connect,"SELECT * FROM bag_brg ORDER by no_urut ASC");
+                if ($sqlbag) {
                 while($dtbag=mysqli_fetch_assoc($sqlbag)){
                   $id_bag=$dtbag['no_urut'];
                   $nm_bag=$dtbag['nm_bag'];
                   $x=explode(";",caritotbag($id_bag,$kd_toko,$tgl1,$tgl2,$cr_bay,$connect));
-                  $totbag=$x[0];
-                  $totrt=$x[1]; 
+                  $totbag=isset($x[0]) ? $x[0] : 0;
+                  $totrt=isset($x[1]) ? $x[1] : 0; 
                   if($totbag>0){
                     ?>
                     <tr style="font-weight:bold">
@@ -397,6 +403,7 @@
                     <?php
                   }
                 }
+                }
                 ?>
     	      </table>
     	    <?php  	
@@ -411,20 +418,35 @@
   
 </body>             
 	<?php
-	function hitjmlbrg($no_fakjual,$tgl_jual,$kd_toko){
-      $connect1 = opendtcek(1);
-      $cek=mysqli_query($connect1,"SELECT COUNT(*) AS jumlah FROM dum_jual where no_fakjual='$no_fakjual' and tgl_jual='$tgl_jual' and kd_toko='$kd_toko'");
+	// Perbaikan: fungsi ini sekarang menerima koneksi ($hub) yang sama
+	// dengan koneksi utama di file ini, bukan membuka koneksi baru
+	// setiap kali dipanggil (sebelumnya membuka 1 koneksi baru per baris
+	// transaksi dalam loop, yang menyebabkan limit koneksi database
+	// cepat habis pada laporan dengan banyak transaksi).
+	function hitjmlbrg($no_fakjual,$tgl_jual,$kd_toko,$hub){
+      if (!$hub || !is_object($hub)) { return 0; }
+      $no_fakjual_esc = mysqli_real_escape_string($hub,$no_fakjual);
+      $tgl_jual_esc   = mysqli_real_escape_string($hub,$tgl_jual);
+      $kd_toko_esc    = mysqli_real_escape_string($hub,$kd_toko);
+      $cek=mysqli_query($hub,"SELECT COUNT(*) AS jumlah FROM dum_jual where no_fakjual='$no_fakjual_esc' and tgl_jual='$tgl_jual_esc' and kd_toko='$kd_toko_esc'");
+      if (!$cek) { return 0; }
       $getjml = mysqli_fetch_array($cek);
-      return mysqli_escape_string($connect1,$getjml['jumlah']);
-      mysqli_close($connect1);unset($cek,$getjml);
+      $hasil = $getjml ? $getjml['jumlah'] : 0;
+      unset($cek,$getjml);
+      return $hasil;
 	}
 
-	function carisaldo($no_fakjual,$tgl_jual,$kd_toko){
-      $connect2 = opendtcek(1);
-      $cek=mysqli_query($connect2,"SELECT saldo_awal FROM mas_jual_hutang where no_fakjual='$no_fakjual' and tgl_jual='$tgl_jual' and kd_toko='$kd_toko' ORDER BY no_urut ASC LIMIT 1");
+	function carisaldo($no_fakjual,$tgl_jual,$kd_toko,$hub){
+      if (!$hub || !is_object($hub)) { return 0; }
+      $no_fakjual_esc = mysqli_real_escape_string($hub,$no_fakjual);
+      $tgl_jual_esc   = mysqli_real_escape_string($hub,$tgl_jual);
+      $kd_toko_esc    = mysqli_real_escape_string($hub,$kd_toko);
+      $cek=mysqli_query($hub,"SELECT saldo_awal FROM mas_jual_hutang where no_fakjual='$no_fakjual_esc' and tgl_jual='$tgl_jual_esc' and kd_toko='$kd_toko_esc' ORDER BY no_urut ASC LIMIT 1");
+      if (!$cek) { return 0; }
       $getsld = mysqli_fetch_array($cek);
-      return mysqli_escape_string($connect2,$getsld['saldo_awal']);
-      mysqli_close($connect2);unset($cek,$getsld);
+      $hasil = $getsld ? $getsld['saldo_awal'] : 0;
+      unset($cek,$getsld);
+      return $hasil;
 	}
   mysqli_close($connect);
 ?>
