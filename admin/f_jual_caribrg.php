@@ -5,7 +5,8 @@
 		session_start();
 	}
 	include "config.php";
-	include_once "mysqli_safe.php";
+	require_once __DIR__ . '/pos_ajax_bootstrap.php';
+	pos_require_mysqli_safe();
     $connect=opendtcek();
     $id_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
     $sql1=false;

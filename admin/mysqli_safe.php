@@ -1,7 +1,7 @@
 <?php
 /**
- * Helper mysqli aman PHP 8.1+ — include setelah config.php.
- * File terpisah agar deploy tidak perlu timpa config.php server.
+ * Helper mysqli aman PHP 8.1+ — require setelah config.php:
+ * require_once __DIR__ . '/mysqli_safe.php';
  */
 if (!function_exists('mysqli_is_result')) {
   function mysqli_is_result($result) {
@@ -28,26 +28,38 @@ if (!function_exists('mysqli_fetch_count_row')) {
   }
 }
 
-/** Output JSON untuk endpoint AJAX {hasil: html} — aman UTF-8 / encode gagal */
+if (!function_exists('pos_json_flags')) {
+  function pos_json_flags() {
+    $flags = JSON_UNESCAPED_UNICODE;
+    if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+      $flags |= JSON_INVALID_UTF8_SUBSTITUTE;
+    }
+    return $flags;
+  }
+}
+
 if (!function_exists('ajax_json_hasil')) {
   function ajax_json_hasil($html, $extra) {
     while (ob_get_level() > 0) {
       ob_end_clean();
     }
-    header('Content-Type: application/json; charset=UTF-8');
-    $payload = array('hasil' => $html);
+    if (!headers_sent()) {
+      header('Content-Type: application/json; charset=UTF-8');
+    }
+    $payload = array('hasil' => is_string($html) ? $html : '');
     if (is_array($extra)) {
       foreach ($extra as $k => $v) {
         $payload[$k] = $v;
       }
     }
-    $flags = JSON_UNESCAPED_UNICODE;
-    if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
-      $flags |= JSON_INVALID_UTF8_SUBSTITUTE;
-    }
+    $flags = pos_json_flags();
     $json = json_encode($payload, $flags);
+    if ($json === false && is_array($extra)) {
+      unset($payload['cartPrint']);
+      $json = json_encode($payload, $flags);
+    }
     if ($json === false) {
-      $payload['hasil'] = is_string($html) ? mb_convert_encoding($html, 'UTF-8', 'UTF-8') : '';
+      $payload = array('hasil' => '', 'error' => 'json_encode gagal');
       $json = json_encode($payload, $flags);
     }
     if ($json === false) {

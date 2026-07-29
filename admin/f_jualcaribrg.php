@@ -5,7 +5,8 @@
     session_start();
   }
   include "config.php";
-  include_once "mysqli_safe.php";
+  require_once __DIR__ . '/pos_ajax_bootstrap.php';
+  pos_require_mysqli_safe();
   $con = opendtcek();
   $kd_toko = isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
   $page = (isset($_POST['page'])) ? (int)$_POST['page'] : 1;

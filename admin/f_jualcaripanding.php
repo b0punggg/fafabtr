@@ -1,7 +1,8 @@
 <?php
 ob_start();
 include "config.php";
-include_once "mysqli_safe.php";
+require_once __DIR__ . '/pos_ajax_bootstrap.php';
+pos_require_mysqli_safe();
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }

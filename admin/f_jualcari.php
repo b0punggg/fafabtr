@@ -1,7 +1,8 @@
 <?php
   ob_start();
   include "config.php";
-  include_once "mysqli_safe.php";
+  require_once __DIR__ . '/pos_ajax_bootstrap.php';
+  pos_require_mysqli_safe();
   if (session_status() === PHP_SESSION_NONE) {
     session_start();
   }
@@ -403,7 +404,9 @@
     if (mysqli_is_result($cekits) && mysqli_count_rows($cekits)>=1){
       $kd_pel='IDPEL-0';$nm_pel="UMUM";   
     }else {
-      mysqli_query($connect,"INSERT INTO pelanggan VALUES('','IDPEL-0','UMUM','UMUM','-')");
+      if ($connect) {
+        mysqli_query($connect,"INSERT INTO pelanggan VALUES('','IDPEL-0','UMUM','UMUM','-')");
+      }
       $kd_pel='IDPEL-0';$nm_pel="UMUM";   
     }
     $kd_bayar="TUNAI";$tgl_jt=date('Y-m-d');  
