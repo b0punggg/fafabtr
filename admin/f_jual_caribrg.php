@@ -1,8 +1,9 @@
 <?php
-	$keyword = $_POST['keyword']; // Ambil data keyword yang dikirim dengan AJAX	
+	$keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
 	ob_start();
-	session_start(); 
-     	
+	if (session_status() === PHP_SESSION_NONE) {
+		session_start();
+	}
 	include "config.php";
     $connect=opendtcek();
 ?>
