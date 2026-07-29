@@ -1,6 +1,7 @@
 <?php
 ob_start();
 include "config.php";
+include_once "mysqli_safe.php";
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }

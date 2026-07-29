@@ -1,7 +1,17 @@
 <?php
-	$keyword = $_POST['keyword']; // Ambil data keyword yang dikirim dengan AJAX	
+	$keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
 	ob_start();
-
+	if (session_status() === PHP_SESSION_NONE) {
+		session_start();
+	}
+	include "config.php";
+	include_once "mysqli_safe.php";
+	$connect=opendtcek();
+	$kd_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
+	$param='';
+	if ($connect && $keyword !== '') {
+		$param=mysqli_real_escape_string($connect, $keyword);
+	}
 ?>
 <style>
   th {
@@ -31,17 +41,11 @@
       <th>OPSI</th>
     </tr>
     <?php
-    include "config.php";
-    session_start();
-    $connect=opendtcek();
-    $kd_toko=$_SESSION['id_toko'];
-    $param=mysqli_escape_string($connect,$keyword); 
-    
-    $sql=mysqli_query($connect,"SELECT * FROM mas_brg WHERE kd_brg='$param' ");
     $no=0;
-    // Tambahkan timestamp dan random untuk membuat id lebih unik dan menghindari duplikasi
-    // Gunakan microtime untuk memastikan unik setiap kali file dipanggil
     $unique_suffix = '_' . str_replace([' ', '.'], '', microtime(true)) . '_' . rand(10000, 99999);
+    if ($connect && $param !== '') {
+    $sql=mysqli_query($connect,"SELECT * FROM mas_brg WHERE kd_brg='$param' ");
+    if (mysqli_is_result($sql)) {
     while ($data=mysqli_fetch_array($sql)) { 	
       //echo $data['kd_kem1'];
       $no=$no+1;
@@ -139,7 +143,9 @@
         </td>    
       </tr>
       <?php } ?>
-    <?php } 
+    <?php
+    }
+    }
     if (!empty($param)){
       if ($no>=1){
         // cek jika satuan awal renteng pakai default 
@@ -175,7 +181,8 @@
           }
         }
       }
-    }  
+    }
+    }
     ?>  
 
   </table>
@@ -220,8 +227,10 @@ $('table.arrow-navsat').keydown(function(e){
 });
 </script>   	
 <?php
-  mysqli_close($connect);
+  if ($connect) {
+    mysqli_close($connect);
+  }
 	$html = ob_get_contents(); 
   ob_end_clean();
-	echo json_encode(array('hasil'=>$html));
+	echo json_encode(array('hasil'=>$html), JSON_UNESCAPED_UNICODE);
 ?>
