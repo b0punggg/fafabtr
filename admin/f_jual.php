@@ -45,6 +45,11 @@
       };
       window.POS_CART_ITEMS = [];
       window.posPrintAlreadyDone = false;
+
+      function posAjaxError(xhr, thrownError) {
+        console.error('POS AJAX error', xhr && xhr.status, thrownError, xhr && xhr.responseText);
+        alert('Gagal memuat data dari server (HTTP ' + (xhr ? xhr.status : '?') + '). Pastikan file admin terbaru sudah di-upload (mysqli_safe.php).');
+      }
     </script>
   </head>
   <style>
@@ -139,7 +144,7 @@
             $("#viewkdbar").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -162,7 +167,7 @@
             $("#viewnmbrgsm").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -216,7 +221,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -400,7 +405,7 @@
               }, 200);
             },
             error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-              alert(xhr.responseText); // munculkan alert
+              posAjaxError(xhr, thrownError);
             }
           });
         }, 100);
@@ -509,7 +514,7 @@
             $("#viewjmlstok").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -531,7 +536,7 @@
             $("#viewnmpel").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -560,7 +565,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -589,7 +594,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -611,7 +616,7 @@
             $("#viewhapusnota").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -661,7 +666,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -683,7 +688,7 @@
             $("#viewlistpanding").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -705,7 +710,7 @@
             $("#viewlistjual").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -725,7 +730,7 @@
             $("#vieweditakhir").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -835,7 +840,7 @@
             // document.getElementById('fload').style.display='none';    
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
             document.getElementById('fload').style.display='none';    
           }
         });
@@ -859,7 +864,7 @@
             document.getElementById('fload').style.display='none';    
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
             document.getElementById('fload').style.display='none';    
           }
         });
@@ -881,7 +886,7 @@
             $("#viewhapusnota").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -902,7 +907,7 @@
             $("#viewstart").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -923,7 +928,7 @@
             $("#viewstart").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -944,7 +949,7 @@
             $("#viewlistpaket").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       } 
@@ -970,7 +975,7 @@
             $("#viewcekkd").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }    
@@ -992,7 +997,7 @@
             $("#viewcekkd").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }    
@@ -1219,7 +1224,7 @@
             window.cetaknotaInFlight = null;
             hidePosStatus();
             delete window.cetaknotaExecuted[currentKey];
-            alert(xhr.responseText);
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -1495,7 +1500,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -1515,7 +1520,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -1535,7 +1540,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            alert(xhr.responseText); // munculkan alert
+            posAjaxError(xhr, thrownError);
           }
         });
       }
@@ -2034,7 +2039,7 @@
                   $('#viewhapusnota').html(response.hasil);
               },
               error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-                alert(xhr.responseText); // munculkan alert
+                posAjaxError(xhr, thrownError);
               }
               
           })
@@ -2195,7 +2200,7 @@
                           $('#viewhapusnota').html(response.hasil);
                       },
                       error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-                        alert(xhr.responseText); // munculkan alert
+                        posAjaxError(xhr, thrownError);
                       }
                       
                   })

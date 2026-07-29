@@ -1298,8 +1298,7 @@
   
   $html = ob_get_contents(); 
   ob_end_clean();
-  echo json_encode(array(
-    'hasil' => $html,
+  ajax_json_hasil($html, array(
     'cartPrint' => isset($cart_print_items) ? $cart_print_items : array(),
-  ), JSON_UNESCAPED_UNICODE);
+  ));
 ?>
