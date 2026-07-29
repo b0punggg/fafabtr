@@ -1,31 +1,5 @@
 <?php
 	ob_start();
-	include "config.php";
-	require_once __DIR__ . '/pos_ajax_bootstrap.php';
-	pos_require_mysqli_safe();
-	if (session_status() === PHP_SESSION_NONE) {
-		session_start();
-	}
-	$connect=opendtcek();
-	$kd_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-	$page = (isset($_POST['page']))? $_POST['page'] : 1;
-	$limit = 8;
-	$limit_start = ($page - 1) * $limit;
-	$sql1 = false;
-	$sql2 = false;
-	$get_jumlah = array('jumlah' => 0);
-
-	if ($connect) {
-		if(isset($_POST['search']) && $_POST['search'] == true){
-			$sql1 = mysqli_query($connect, "SELECT * FROM paket_mas WHERE kd_toko='$kd_toko' ORDER BY nm_paket ASC LIMIT $limit_start, $limit");
-			$sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM paket_mas WHERE kd_toko='$kd_toko'");
-			$get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
-		} else {
-			$sql1 = mysqli_query($connect, "SELECT * FROM paket_mas WHERE kd_toko='$kd_toko' ORDER BY nm_paket ASC LIMIT $limit_start, $limit");
-			$sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM paket_mas WHERE kd_toko='$kd_toko'");
-			$get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
-		}
-	}
 ?>
 
 <div class="table-responsive" style="overflow-y:auto;overflow-x: auto;border-style: ridge;">
@@ -36,9 +10,37 @@
 	      <th style="width: 3%">OPSI</th>
 	    </tr>
 	    <?php
+	    session_start(); 
+        include "config.php";
+	    $connect=opendtcek();
+	    $kd_toko=$_SESSION['id_toko'];
+	    	
+        $page = (isset($_POST['page']))? $_POST['page'] : 1;
+	    $limit = 8; // Jumlah data per halamannya
+	    $limit_start = ($page - 1) * $limit;
+	    // echo '$limit_start='.$limit_start;
+
+	    if(isset($_POST['search']) && $_POST['search'] == true){ // Jika ada data search yg 
+   		 //    $params = mysqli_real_escape_string($connect, $keyword);
+	    	// $param='%'.$params.'%';  	
+	    	// echo $params;
+          	  $sql1 = mysqli_query($connect, "SELECT * FROM paket_mas
+          	  	  WHERE kd_toko='$kd_toko'
+          	  	  ORDER BY nm_paket ASC LIMIT $limit_start, $limit");
+	          $sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM paket_mas  WHERE kd_toko='$kd_toko' ORDER BY nm_paket");
+          $get_jumlah = mysqli_fetch_array($sql2);
+
+	    }else{ // Jika user belum mengklik tombol search (PROSES TANPA AJAX)
+	      // $id_apt=$_SESSION['id_apt'];
+
+          $sql1 = mysqli_query($connect, "SELECT * FROM paket_mas
+          	  WHERE kd_toko='$kd_toko' ORDER BY nm_paket ASC LIMIT $limit_start, $limit");
+	      // Buat query untuk menghitung semua jumlah data
+	      $sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM paket_mas WHERE kd_toko='$kd_toko'  ORDER BY nm_paket");
+	      $get_jumlah = mysqli_fetch_array($sql2);
+	    }
         $no=$limit_start;	    
         $x1="";$kd_sat4="";$hrg_jum4=0;$lim1=0;
-	    if (mysqli_is_result($sql1)) {
 	    while($databrg = mysqli_fetch_array($sql1)){ // Ambil semua data dari hasil eksekusi $sql
 	      $no++;
 	    
@@ -61,7 +63,6 @@
 	        </td>    
 	      </tr>
 	    <?php
-	    }
 	    }
 	    ?>
 	  </table>
@@ -170,10 +171,10 @@ $('table.arrow-nav2').keydown(function(e){
   <!--  -->		
 
 <?php
-    if ($connect) {
-      mysqli_close($connect);
-    }
-	$html = ob_get_contents();
+    mysqli_close($connect);
+	$html = ob_get_contents(); // Masukan isi dari view.php ke dalam variabel $html
 	ob_end_clean();
-	ajax_json_hasil($html, null);
+	// Buat array dengan index hasil dan value nya $html
+	// Lalu konversi menjadi JSON
+	echo json_encode(array('hasil'=>$html));
 ?>

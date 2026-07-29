@@ -1,45 +1,53 @@
 <?php
-	$keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
+	$keyword = $_POST['keyword']; // Ambil data keyword yang dikirim dengan AJAX	
 	ob_start();
-	if (session_status() === PHP_SESSION_NONE) {
-		session_start();
-	}
+	session_start(); 
+     	
 	include "config.php";
-	require_once __DIR__ . '/pos_ajax_bootstrap.php';
-	pos_require_mysqli_safe();
     $connect=opendtcek();
-    $id_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-    $sql1=false;
-    $sql2=false;
-    $get_jumlah=array('jumlah'=>0);
-    $page = (isset($_POST['page'])) ? (int)$_POST['page'] : 1;
-    $limit = 10;
-    $limit_start = ($page - 1) * $limit;
+		if (!$connect) {
+    echo json_encode(array('hasil' => '<div style="color:red;padding:10px">Koneksi database gagal, silakan coba beberapa saat lagi.</div>'));
+    exit;
+}
+?>
 
-    // SELECT dengan MAX() agar kompatibel ONLY_FULL_GROUP_BY (MySQL 5.7+/Hostinger)
-    $brg_select = "SELECT beli_brg.kd_brg,
-      MAX(beli_brg.kd_sat) AS kd_sat,
-      SUM(beli_brg.stok_jual) AS jumstok,
-      MAX(mas_brg.nm_brg) AS nm_brg,
-      MAX(mas_brg.jum_kem1) AS jum_kem1, MAX(mas_brg.jum_kem2) AS jum_kem2, MAX(mas_brg.jum_kem3) AS jum_kem3,
-      MAX(mas_brg.kd_kem1) AS kd_kem1, MAX(mas_brg.kd_kem2) AS kd_kem2, MAX(mas_brg.kd_kem3) AS kd_kem3,
-      MAX(mas_brg.hrg_jum1) AS hrg_jum1, MAX(mas_brg.hrg_jum2) AS hrg_jum2, MAX(mas_brg.hrg_jum3) AS hrg_jum3,
-      MAX(beli_brg.id_bag) AS id_bag
-      FROM beli_brg LEFT JOIN mas_brg ON beli_brg.kd_brg=mas_brg.kd_brg";
+<div class="table-responsive" style="overflow-x:auto;overflow-y:auto; border-style: ridge;">
+	<table id="jnmbrg" class="table-hover" style="font-size:9pt;width:100%;border-collapse: collapse;white-space: nowrap;">
+	    <tr align="middle" class="yz-theme-l1">
+	      <!-- <th>KD. BRG.</th> -->
+	      <th >NAMA BARANG</th>
+		  <th style ="width:5%">HRG.JUAL</th>
+	      <th style ="width:5%">STOK</th>
+	      <th style ="width:3%">SAT</th>
+	      <th style ="width:2%">OPSI</th>
+	    </tr>
+	    <?php
+	    $page = (isset($_POST['page']))? $_POST['page'] : 1;
 
-	    if ($connect && isset($_POST['search']) && $_POST['search'] == true){
+	    $limit = 10; // Jumlah data per halamannya
+
+	    $limit_start = ($page - 1) * $limit;
+	    // echo '$limit_start='.$limit_start;
+        $id_toko=$_SESSION['id_toko'];
+	    if(isset($_POST['search']) && $_POST['search'] == true){ // Jika ada data search yg 
+   		    
 	    	$params = mysqli_real_escape_string($connect, $keyword);
 	    	$param='%'.trim($params).'%';  	
 	    	
           if ($params=="") {	 
-          	$sql1 = mysqli_query($connect, "$brg_select
+          	// Query untuk menampilkan semua barang yang memiliki stok (mulai dari beli_brg)
+          	$sql1 = mysqli_query($connect, "SELECT beli_brg.kd_brg,beli_brg.stok_jual,beli_brg.kd_sat, SUM(beli_brg.stok_jual) AS jumstok,mas_brg.nm_brg,mas_brg.jum_kem1,mas_brg.jum_kem2,mas_brg.jum_kem3,mas_brg.kd_kem1,mas_brg.kd_kem2,mas_brg.kd_kem3,mas_brg.hrg_jum1,mas_brg.hrg_jum2,mas_brg.hrg_jum3,beli_brg.id_bag
+          	  	FROM beli_brg LEFT JOIN mas_brg ON beli_brg.kd_brg=mas_brg.kd_brg
           	  	WHERE beli_brg.kd_toko='$id_toko' AND beli_brg.stok_jual>0
 				GROUP BY beli_brg.kd_brg
           	    ORDER BY beli_brg.kd_brg ASC LIMIT $limit_start, $limit");
           	$sql2 = mysqli_query($connect, "SELECT COUNT(DISTINCT kd_brg) AS jumlah FROM beli_brg WHERE kd_toko='$id_toko' AND beli_brg.stok_jual>0");
           }
           else {
-	        $sql1 = mysqli_query($connect, "$brg_select
+          	// Pencarian berdasarkan nama barang, kode barang, atau barcode (case-insensitive)
+          	// Mulai dari beli_brg untuk memastikan hanya barang yang ada stok
+	        $sql1 = mysqli_query($connect, "SELECT beli_brg.kd_brg,beli_brg.stok_jual,beli_brg.kd_sat, SUM(beli_brg.stok_jual) AS jumstok,mas_brg.nm_brg,mas_brg.jum_kem1,mas_brg.jum_kem2, mas_brg.jum_kem3,mas_brg.kd_kem1,mas_brg.kd_kem2,mas_brg.kd_kem3,mas_brg.hrg_jum1,mas_brg.hrg_jum2,mas_brg.hrg_jum3,beli_brg.id_bag
+          	  	FROM beli_brg LEFT JOIN mas_brg ON beli_brg.kd_brg=mas_brg.kd_brg 
           	  	WHERE beli_brg.kd_toko='$id_toko' AND beli_brg.stok_jual>0
           	  		AND (
           	  			UPPER(mas_brg.nm_brg) LIKE UPPER('$param') 
@@ -47,10 +55,12 @@
           	  			OR (mas_brg.kd_bar IS NOT NULL AND mas_brg.kd_bar != '' AND UPPER(mas_brg.kd_bar) LIKE UPPER('$param'))
           	  		)
           	  	GROUP BY beli_brg.kd_brg
-          	    ORDER BY MAX(mas_brg.nm_brg) ASC LIMIT $limit_start, $limit");
+          	    ORDER BY mas_brg.nm_brg ASC LIMIT $limit_start, $limit");
           	
           	if (!$sql1) {
-          		$sql1 = mysqli_query($connect, "$brg_select
+          		// Jika query gagal karena UPPER, coba tanpa UPPER
+          		$sql1 = mysqli_query($connect, "SELECT beli_brg.kd_brg,beli_brg.stok_jual,beli_brg.kd_sat, SUM(beli_brg.stok_jual) AS jumstok,mas_brg.nm_brg,mas_brg.jum_kem1,mas_brg.jum_kem2, mas_brg.jum_kem3,mas_brg.kd_kem1,mas_brg.kd_kem2,mas_brg.kd_kem3,mas_brg.hrg_jum1,mas_brg.hrg_jum2,mas_brg.hrg_jum3,beli_brg.id_bag
+          			FROM beli_brg LEFT JOIN mas_brg ON beli_brg.kd_brg=mas_brg.kd_brg 
           			WHERE beli_brg.kd_toko='$id_toko' AND beli_brg.stok_jual>0
           				AND (
           					mas_brg.nm_brg LIKE '$param' 
@@ -58,7 +68,7 @@
           					OR (mas_brg.kd_bar IS NOT NULL AND mas_brg.kd_bar != '' AND mas_brg.kd_bar LIKE '$param')
           				)
           			GROUP BY beli_brg.kd_brg
-          			ORDER BY MAX(mas_brg.nm_brg) ASC LIMIT $limit_start, $limit");
+          			ORDER BY mas_brg.nm_brg ASC LIMIT $limit_start, $limit");
           	}
           	
           	$sql2 = mysqli_query($connect, "SELECT COUNT(DISTINCT beli_brg.kd_brg) AS jumlah FROM beli_brg 
@@ -71,31 +81,32 @@
 		      		)");
           }	
 	      
-	      $get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
+	      // Cek apakah query berhasil sebelum fetch
+	      if ($sql2 !== false) {
+	      	$get_jumlah = mysqli_fetch_array($sql2);
+	      } else {
+	      	$get_jumlah = array('jumlah' => 0);
+	      }
 
-	    }elseif ($connect) {
-			$sql1 = mysqli_query($connect, "$brg_select
+	    }else{ // Jika user belum mengklik tombol search (PROSES TANPA AJAX)
+			$sql1 = mysqli_query($connect, "SELECT beli_brg.kd_brg,beli_brg.stok_jual,beli_brg.kd_sat, SUM(beli_brg.stok_jual) AS jumstok,mas_brg.nm_brg,mas_brg.jum_kem1,mas_brg.jum_kem2,mas_brg.jum_kem3,mas_brg.kd_kem1,mas_brg.kd_kem2,mas_brg.kd_kem3,mas_brg.hrg_jum1,mas_brg.hrg_jum2,mas_brg.hrg_jum3,beli_brg.id_bag
+			FROM beli_brg LEFT JOIN mas_brg ON beli_brg.kd_brg=mas_brg.kd_brg
 			WHERE beli_brg.kd_toko='$id_toko' AND beli_brg.stok_jual>0
 			GROUP BY beli_brg.kd_brg
 		    ORDER BY beli_brg.kd_brg ASC LIMIT $limit_start, $limit");
 	  		$sql2 = mysqli_query($connect, "SELECT COUNT(DISTINCT kd_brg) AS jumlah FROM beli_brg WHERE kd_toko='$id_toko' AND beli_brg.stok_jual>0");
-	  		$get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
+	  		
+	  		// Cek apakah query berhasil sebelum fetch
+	  		if ($sql2 !== false) {
+	  			$get_jumlah = mysqli_fetch_array($sql2);
+	  		} else {
+	  			$get_jumlah = array('jumlah' => 0);
+	  		}
 	    }
-?>
-
-<div class="table-responsive" style="overflow-x:auto;overflow-y:auto; border-style: ridge;">
-	<table id="jnmbrg" class="table-hover" style="font-size:9pt;width:100%;border-collapse: collapse;white-space: nowrap;">
-	    <tr align="middle" class="yz-theme-l1">
-	      <th >NAMA BARANG</th>
-		  <th style ="width:5%">HRG.JUAL</th>
-	      <th style ="width:5%">STOK</th>
-	      <th style ="width:3%">SAT</th>
-	      <th style ="width:2%">OPSI</th>
-	    </tr>
-	    <?php
 	    $no=0;$stok=0;$hrg_jual=0;
 	    
-	    if (mysqli_is_result($sql1) && mysqli_count_rows($sql1) > 0) {
+	    // Cek apakah query sql1 berhasil sebelum loop
+	    if ($sql1 !== false && mysqli_num_rows($sql1) > 0) {
 	    	while($databrg = mysqli_fetch_array($sql1)) { 
 			$no++;
 			$stok=caristok($databrg['kd_brg'],$connect);
@@ -346,10 +357,9 @@
   });    
 </script>		
 <?php
-	if ($connect) {
-		mysqli_close($connect);
-	}
-	$html = ob_get_contents();
+	$html = ob_get_contents(); // Masukan isi dari view.php ke dalam variabel $html
 	ob_end_clean();
-	ajax_json_hasil($html, null);
+	// Buat array dengan index hasil dan value nya $html
+	// Lalu konversi menjadi JSON
+	echo json_encode(array('hasil'=>$html));
 ?>

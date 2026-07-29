@@ -6,17 +6,6 @@
    setlocale(LC_MONETARY , "ID");
    $kd_toko=$_SESSION['id_toko'];
    $id_user=$_SESSION['id_user'];
-   $connect_toko = opendtcek();
-   $pos_nm_toko = 'TOKOFAFA';
-   $pos_al_toko = '';
-   $sqltoko = mysqli_query($connect_toko, "SELECT nm_toko, al_toko FROM toko WHERE kd_toko='$kd_toko' LIMIT 1");
-   if ($sqltoko && mysqli_num_rows($sqltoko) > 0) {
-     $dttoko = mysqli_fetch_assoc($sqltoko);
-     $pos_nm_toko = $dttoko['nm_toko'];
-     $pos_al_toko = $dttoko['al_toko'];
-     mysqli_free_result($sqltoko);
-   }
-   mysqli_close($connect_toko);
   ?> 
   <head>
     <meta charset="UTF-8">
@@ -36,21 +25,6 @@
     <script type="text/javascript" src="../assets/js/jquery.mask.min.js"></script> 
     <script type="text/javascript" src="../assets/js/bootstrap.min.js"></script>
     <script src="../assets/js/html5-qrcode.min.js"></script>
-    <script src="print_bridge_client.js?v=20260715"></script>
-    <script>
-      window.POS_TOKO = {
-        kd_toko: <?=json_encode($kd_toko)?>,
-        nm_toko: <?=json_encode($pos_nm_toko)?>,
-        al_toko: <?=json_encode($pos_al_toko)?>
-      };
-      window.POS_CART_ITEMS = [];
-      window.posPrintAlreadyDone = false;
-
-      function posAjaxError(xhr, thrownError) {
-        console.error('POS AJAX error', xhr && xhr.status, thrownError, xhr && xhr.responseText);
-        alert('Gagal memuat data dari server (HTTP ' + (xhr ? xhr.status : '?') + '). Pastikan file admin terbaru sudah di-upload (mysqli_safe.php).');
-      }
-    </script>
   </head>
   <style>
     body,h2,h3,h4,h5,h6 {font-family: "Helvetica", arial}
@@ -85,35 +59,9 @@
     input.hrf_arial {font-size:10pt;}
     input.hrf_res {font-size:9pt;}
   }
-  #pos-status-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 10024;
-    background: rgba(0, 0, 0, 0.35);
-    align-items: center;
-    justify-content: center;
-  }
-  #pos-status-box {
-    background: #fff;
-    border-radius: 8px;
-    padding: 18px 28px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    font-size: 14pt;
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-    min-width: 240px;
-  }
 </style>
 
   <body onkeydown="tekantombol()">
-    <div id="pos-status-overlay">
-      <div id="pos-status-box">
-        <i class="fa fa-spinner fa-spin"></i>
-        <span id="pos-status-text" style="margin-left:8px;">Memproses...</span>
-      </div>
-    </div>
     <div id="main" style="font-size: 10pt;background: linear-gradient(565deg, #FAFAD2 10%, white 80%)">
     <div class="loader1" style="z-index: 10023"><div class="loader2"><div class="loader3"></div></div></div>
 
@@ -144,7 +92,7 @@
             $("#viewkdbar").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -167,7 +115,7 @@
             $("#viewnmbrgsm").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -211,9 +159,6 @@
             });
             
             $("#viewbrgjual").html(response.hasil);
-            if (response.cartPrint && response.cartPrint.length) {
-              window.POS_CART_ITEMS = response.cartPrint;
-            }
             
             // Delay pengecekan duplicate IDs setelah content di-load
             setTimeout(function() {
@@ -221,7 +166,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -405,7 +350,7 @@
               }, 200);
             },
             error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-              posAjaxError(xhr, thrownError);
+              alert(xhr.responseText); // munculkan alert
             }
           });
         }, 100);
@@ -514,7 +459,7 @@
             $("#viewjmlstok").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -536,7 +481,7 @@
             $("#viewnmpel").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -565,7 +510,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -594,7 +539,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -616,7 +561,7 @@
             $("#viewhapusnota").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -666,7 +611,7 @@
             }, 100);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -688,7 +633,7 @@
             $("#viewlistpanding").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -710,7 +655,7 @@
             $("#viewlistjual").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -730,7 +675,7 @@
             $("#vieweditakhir").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -840,7 +785,7 @@
             // document.getElementById('fload').style.display='none';    
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
             document.getElementById('fload').style.display='none';    
           }
         });
@@ -864,7 +809,7 @@
             document.getElementById('fload').style.display='none';    
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
             document.getElementById('fload').style.display='none';    
           }
         });
@@ -886,7 +831,7 @@
             $("#viewhapusnota").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -907,7 +852,7 @@
             $("#viewstart").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -928,7 +873,7 @@
             $("#viewstart").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -949,7 +894,7 @@
             $("#viewlistpaket").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       } 
@@ -975,7 +920,7 @@
             $("#viewcekkd").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }    
@@ -997,260 +942,56 @@
             $("#viewcekkd").html(response.hasil);
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }    
       
+      // Flag untuk mencegah double execution - menggunakan window scope
       if (typeof window.cetaknotaExecuted === 'undefined') {
         window.cetaknotaExecuted = {};
       }
-      if (typeof window.cetaknotaInFlight === 'undefined') {
-        window.cetaknotaInFlight = null;
-      }
-      if (typeof window.simpanbyrBusy === 'undefined') {
-        window.simpanbyrBusy = false;
-      }
-      if (typeof window.posPrintAlreadyDone === 'undefined') {
-        window.posPrintAlreadyDone = false;
-      }
-
-      function parseMoneyValue(val) {
-        if (val === null || val === undefined || val === '') return 0;
-        if (typeof val === 'number' && !isNaN(val)) return Math.round(val);
-        var s = String(val).replace(/\./g, '').replace(',', '.');
-        return Math.round(Number(s) || 0);
-      }
-
-      function formatTglId(iso) {
-        if (!iso) return '';
-        var p = String(iso).split('-');
-        if (p.length !== 3) return String(iso);
-        return p[2] + '-' + p[1] + '-' + p[0];
-      }
-
-      function formatTglTime(tgl_jual) {
-        var now = new Date();
-        var h = ('0' + now.getHours()).slice(-2);
-        var m = ('0' + now.getMinutes()).slice(-2);
-        var s = ('0' + now.getSeconds()).slice(-2);
-        return formatTglId(tgl_jual) + ' ' + h + ':' + m + ':' + s;
-      }
-
-      function shouldPrintOnSave(pil_cetak) {
-        var p = String(pil_cetak || '').toUpperCase();
-        return p === 'CETAK' || p === 'CETAK-CK' || p === 'CETAK-SM';
-      }
-
-      function buildNotaFromScreen(opts) {
-        opts = opts || {};
-        var items = window.POS_CART_ITEMS || [];
-        var belanja = 0;
-        items.forEach(function(item) {
-          belanja += Number(item.subtot) || 0;
-        });
-
-        var disctot = parseMoneyValue(document.getElementById('disctot') ? document.getElementById('disctot').value : 0);
-        var voucher = parseMoneyValue(document.getElementById('voucher') ? document.getElementById('voucher').value : 0);
-        var ongkir = parseMoneyValue(document.getElementById('ongkir') ? document.getElementById('ongkir').value : 0);
-        var bayar = parseMoneyValue(document.getElementById('bayar') ? document.getElementById('bayar').value : 0);
-        var susuk = parseMoneyValue(
-          document.getElementById('kembali') ? document.getElementById('kembali').value :
-          (document.getElementById('kembali1') ? document.getElementById('kembali1').value : 0)
-        );
-        var totBelanja = parseMoneyValue(document.getElementById('tot_belanja') ? document.getElementById('tot_belanja').value : belanja);
-        var kd_bayar = document.getElementById('kd_bayar2') ? document.getElementById('kd_bayar2').value : 'TUNAI';
-        var saldohut = kd_bayar === 'TUNAI' ? 0 : Math.max(0, totBelanja - bayar);
-        var nm_member = document.getElementById('nm_memberbayar') ? document.getElementById('nm_memberbayar').value : '';
-        var poinEarnedEl = document.getElementById('poin_earned_hidden');
-        var poinAvailEl = document.getElementById('poin_member_available');
-        var poinMemberEl = document.getElementById('poin_member');
-        var toko = window.POS_TOKO || {};
-
-        return {
-          no_fakjual: opts.no_fakjual || '',
-          tgl_jual: opts.tgl_jual || '',
-          nm_toko: toko.nm_toko || 'TOKOFAFA',
-          al_toko: toko.al_toko || '',
-          nm_pel: document.getElementById('nm_pelbayar') ? document.getElementById('nm_pelbayar').value : '',
-          alamat: '',
-          tgltime: formatTglTime(opts.tgl_jual || ''),
-          nm_member: nm_member,
-          poin_earned: poinEarnedEl ? parseFloat(poinEarnedEl.value || 0) : 0,
-          poin_saldo: poinAvailEl ? parseFloat(poinAvailEl.value || 0) : (poinMemberEl ? parseFloat(poinMemberEl.value || 0) : 0),
-          belanja: belanja,
-          total: totBelanja,
-          total_bayar: totBelanja,
-          disctot: disctot,
-          disctot_raw: disctot,
-          voucher: voucher,
-          voucher_raw: voucher,
-          ongkir: ongkir,
-          ongkir_raw: ongkir,
-          kd_bayar: kd_bayar,
-          bayar: bayar,
-          susuk: susuk,
-          saldohut: saldohut,
-          jtempo: formatTglId(document.getElementById('tgl_jtnotas') ? document.getElementById('tgl_jtnotas').value : ''),
-          items: items
-        };
-      }
-
-      function printNotaImmediate(notaData) {
-        var printKey = (notaData.no_fakjual || '') + '|' + (notaData.tgl_jual || '');
-        window.posPrintAlreadyDone = true;
-        window.cetaknotaExecuted[printKey + '|fast'] = true;
-        showPosStatus('Mencetak nota...');
-        return sendNotaToPrintBridge(notaData, { keepStatus: true });
-      }
-
-      function showPosStatus(message) {
-        var overlay = document.getElementById('pos-status-overlay');
-        var text = document.getElementById('pos-status-text');
-        if (overlay && text) {
-          text.textContent = message || 'Memproses...';
-          overlay.style.display = 'flex';
-        }
-      }
-
-      function hidePosStatus() {
-        var overlay = document.getElementById('pos-status-overlay');
-        if (overlay) {
-          overlay.style.display = 'none';
-        }
-      }
-
-      function sendNotaToPrintBridge(notaData, options) {
-        options = options || {};
-        if (!options.keepStatus) {
-          showPosStatus('Mencetak nota...');
-        }
-        var printPromise;
-        if (typeof printBridgeNota === 'function') {
-          printPromise = printBridgeNota(notaData);
-        } else {
-          printPromise = fetch('http://localhost:3000/print/nota', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(notaData)
-          }).then(function(res) {
-            if (!res.ok) throw new Error('Print bridge gagal');
-            return res.json();
-          });
-        }
-        return Promise.resolve(printPromise).then(function(result) {
-          console.log('✅ Cetak selesai:', result);
-          if (!options.keepStatus) {
-            hidePosStatus();
-          }
-          return result;
-        }).catch(function(err) {
-          console.error('❌ Error cetak nota:', err);
-          if (!options.keepStatus) {
-            hidePosStatus();
-          }
-          throw err;
-        });
-      }
-
-      function runCetaknotaFromScript(script) {
-        if (!script || script.indexOf('cetaknota') === -1) return false;
-        var cetakMatch = script.match(/cetaknota\(['"]([^'"]+)['"],\s*['"]([^'"]*)['"]\)/);
-        if (cetakMatch && typeof cetaknota === 'function') {
-          cetaknota(cetakMatch[1], cetakMatch[2]);
-          return true;
-        }
-        return false;
-      }
-
+      
       function cetaknota(dtc,kopi){
+        // Buat key unik berdasarkan parameter
         var currentKey = dtc + '|' + kopi;
-        if (window.cetaknotaInFlight === currentKey) {
-          console.log('cetaknota sedang diproses, abaikan panggilan ganda');
-          return;
-        }
+        
+        // Cek apakah fungsi sudah dieksekusi dengan parameter yang sama
         if (window.cetaknotaExecuted[currentKey]) {
           console.log('cetaknota already executed for this transaction, skipping...');
           return;
         }
-        window.cetaknotaInFlight = currentKey;
+        
+        // Set flag
         window.cetaknotaExecuted[currentKey] = true;
-        showPosStatus('Menyiapkan nota...');
+        
+        // Reset flag setelah 3 detik untuk memungkinkan eksekusi berikutnya
         setTimeout(function() {
           delete window.cetaknotaExecuted[currentKey];
-        }, 10000);
-
+        }, 3000);
+        
         $.ajax({
-          url: 'f_jual_cetnota.php',
-          type: 'POST',
-          data: {dtc:dtc,kopi:kopi},
+          url: 'f_jual_cetnota.php', // File tujuan
+          type: 'POST', // Tentukan type nya POST atau GET
+          data: {dtc:dtc,kopi:kopi}, 
           dataType: "json",
           beforeSend: function(e) {
             if(e && e.overrideMimeType) {
               e.overrideMimeType("application/json;charset=UTF-8");
             }
           },
-          success: function(response){
-            if (response && response.notaData) {
-              console.log('🖨️ Cetak langsung dari f_jual_cetnota.php (tanpa get_nota.php)');
-              sendNotaToPrintBridge(response.notaData).finally(function() {
-                window.cetaknotaInFlight = null;
-              });
-              return;
-            }
-
-            var htmlContent = response.hasil || '';
-            var scripts = [];
-            htmlContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, function(match, scriptContent) {
-              if (scriptContent && scriptContent.trim()) {
-                scripts.push(scriptContent);
-              }
-              return '';
-            });
-            var cleanHtml = htmlContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-            $("#viewcetnot").html(cleanHtml);
-            if (scripts.length > 0) {
-              try {
-                console.log('🖨️ Executing print script (once)');
-                eval(scripts[0]);
-              } catch (e) {
-                console.error('❌ Print script error:', e);
-              }
-            }
-            hidePosStatus();
-            window.cetaknotaInFlight = null;
+          success: function(response){ 
+            $("#viewcetnot").html(response.hasil);
           },
-          error: function (xhr) {
-            window.cetaknotaInFlight = null;
-            hidePosStatus();
-            delete window.cetaknotaExecuted[currentKey];
-            posAjaxError(xhr, thrownError);
+          error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
-
+      
       function simpanbyr(dtgl_jual,cno_fakjuals,ckd_pel_byr,ckd_bayar,nbyr_awal,ntot_belanja,nbayar,nkembali,ndisctot,ntdiscitem1,nvoucher,nongkir,cpil_tf,dtgl_jtnota,npil_cetak){
-        if (window.simpanbyrBusy) {
-          console.log('simpanbyr sedang diproses, abaikan klik ganda');
-          return;
-        }
-        window.simpanbyrBusy = true;
-        window.posPrintAlreadyDone = false;
-
-        if (shouldPrintOnSave(npil_cetak)) {
-          var fastNota = buildNotaFromScreen({
-            no_fakjual: cno_fakjuals,
-            tgl_jual: dtgl_jual
-          });
-          if (fastNota.items && fastNota.items.length > 0) {
-            printNotaImmediate(fastNota).catch(function(err) {
-              console.warn('Cetak cepat gagal, akan dicoba ulang dari server:', err);
-              window.posPrintAlreadyDone = false;
-            });
-          }
-        }
-
-        showPosStatus('Menyimpan transaksi...');
+        
+        // Ambil data member dan poin sebelum submit
         var kd_member_byr = document.getElementById('kd_member_byr') ? document.getElementById('kd_member_byr').value : '';
         var poin_earned_hidden = document.getElementById('poin_earned_hidden') ? document.getElementById('poin_earned_hidden').value : '0';
         var poin_redeem_hidden = document.getElementById('poin_redeem_hidden') ? document.getElementById('poin_redeem_hidden').value : '0';
@@ -1275,8 +1016,6 @@
             if (!response || !response.hasil) {
               console.error('❌ Invalid response:', response);
               alert('Error: Tidak ada response dari server. Silakan coba lagi.');
-              hidePosStatus();
-              window.simpanbyrBusy = false;
               setTimeout(function() {
                 window.location.reload();
               }, 2000);
@@ -1293,8 +1032,6 @@
             if (!htmlContent || htmlContent.trim() === '') {
               console.error('❌ HTML content is empty!');
               alert('Error: Response kosong dari server.');
-              hidePosStatus();
-              window.simpanbyrBusy = false;
               return;
             }
             var scripts = [];
@@ -1353,35 +1090,113 @@
             
             // Execute print scripts FIRST (before popup) to ensure printing happens
             if (hasPrintScript) {
-              if (window.posPrintAlreadyDone) {
-                console.log('⏭️ Cetak sudah dari layar, lewati cetaknota server');
+              console.log('🖨️ Print script detected, executing IMMEDIATELY...');
+              console.log('📋 Total scripts to process:', scripts.length);
+              
+              // Ensure cetaknota function is available
+              if (typeof cetaknota === 'undefined') {
+                console.error('❌ ERROR: cetaknota function is not defined!');
+                console.error('⚠️ Waiting for cetaknota function to be available...');
+                // Wait a bit and try again
+                setTimeout(function() {
+                  if (typeof cetaknota !== 'undefined') {
+                    console.log('✅ cetaknota function is now available, executing print...');
+                    scripts.forEach(function(script, idx) {
+                      try {
+                        if (script.indexOf('cetaknota') !== -1) {
+                          console.log('▶️ Executing cetaknota() script #' + (idx + 1) + '...');
+                          // Extract cetaknota call from script
+                          var cetakMatch = script.match(/cetaknota\(['"]([^'"]+)['"],\s*['"]([^'"]+)['"]\)/);
+                          if (cetakMatch && typeof cetaknota === 'function') {
+                            var dtc = cetakMatch[1];
+                            var kopi = cetakMatch[2];
+                            console.log('📋 Calling cetaknota directly with dtc:', dtc.substring(0, 50) + '...', 'kopi:', kopi);
+                            cetaknota(dtc, kopi);
+                            console.log('✅ cetaknota() called successfully');
+                          } else {
+                            eval(script);
+                          }
+                          console.log('✅ cetaknota() script executed successfully');
+                        }
+                      } catch(e) {
+                        console.error('❌ Print script error:', e);
+                        console.error('Error details:', e.message, e.stack);
+                      }
+                    });
+                  } else {
+                    console.error('❌ cetaknota function still not available after wait');
+                  }
+                }, 100);
               } else {
-                var printStarted = false;
-                scripts.forEach(function(script) {
-                  if (!printStarted && script.indexOf('cetaknota') !== -1) {
-                    printStarted = runCetaknotaFromScript(script);
-                    return;
-                  }
-                  if (script.indexOf('cetaknota') === -1 && script.indexOf('kosongkan2') !== -1) {
-                    try { eval(script); } catch(e) { console.error('Script error:', e); }
-                  }
-                });
+                console.log('✅ cetaknota function is available');
+                
+                // Execute print scripts first - use setTimeout to ensure DOM is ready
+                setTimeout(function() {
+                  scripts.forEach(function(script, idx) {
+                    try {
+                      if (script.indexOf('cetaknota') !== -1) {
+                        console.log('▶️ Executing cetaknota() script #' + (idx + 1) + '...');
+                        console.log('📝 Script preview:', script.substring(0, 150));
+                        // Extract cetaknota call from script
+                        var cetakMatch = script.match(/cetaknota\(['"]([^'"]+)['"],\s*['"]([^'"]+)['"]\)/);
+                        if (cetakMatch) {
+                          var dtc = cetakMatch[1];
+                          var kopi = cetakMatch[2];
+                          console.log('📋 Calling cetaknota with dtc:', dtc.substring(0, 50) + '...', 'kopi:', kopi);
+                          // Call cetaknota directly
+                          if (typeof cetaknota === 'function') {
+                            cetaknota(dtc, kopi);
+                            console.log('✅ cetaknota() called successfully');
+                          } else {
+                            console.error('❌ cetaknota is not a function');
+                            // Fallback: execute script as is
+                            eval(script);
+                          }
+                        } else {
+                          // Fallback: execute script as is
+                          eval(script);
+                        }
+                        console.log('✅ Print script executed successfully');
+                      }
+                    } catch(e) {
+                      console.error('❌ Print script error:', e);
+                      console.error('Script content:', script.substring(0, 200));
+                      console.error('Full error:', e.message, e.stack);
+                    }
+                  });
+                }, 100);
               }
-
+              
+              // Execute other non-print scripts
+              scripts.forEach(function(script) {
+                try {
+                  if (script.indexOf('cetaknota') === -1 && script.indexOf('kosongkan2') !== -1) {
+                    eval(script);
+                  }
+                } catch(e) {
+                  console.error('Script error:', e);
+                }
+              });
+              
+              // Execute popup scripts after print is initiated
               setTimeout(function() {
                 popupScripts.forEach(function(script) {
                   try {
                     console.log('▶️ Executing popup script:', script.substring(0, 100));
                     eval(script);
+                    console.log('✅ Popup script executed');
                   } catch(e) {
                     console.error('❌ Popup script error:', e);
+                    console.error('Script content:', script);
                   }
                 });
-                hidePosStatus();
-              }, 300);
-
+              }, 500);
+              
+              // Inject cleaned HTML
               var cleanHtml = htmlContent.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
               $("#viewsimpanbyr").html(cleanHtml);
+              
+              // NO AUTO-RELOAD - User requested to remove it
               console.log('✅ Print process initiated, no auto-reload');
             } else {
               // No print script - execute normally
@@ -1427,11 +1242,9 @@
                 // Reload setelah popup muncul (minimal 3 detik untuk memastikan popup terlihat)
                 setTimeout(function() {
                   console.log('🔄 Reloading page after popup...');
-                  hidePosStatus();
                   window.location.reload();
                 }, 3000);
               } else {
-                hidePosStatus();
                 console.log('⚠️ Error detected, skipping auto-reload to allow user to see error message');
               }
             }
@@ -1475,16 +1288,11 @@
                 window.location.reload();
               }, 1000);
             }
-            window.simpanbyrBusy = false;
-            hidePosStatus();
-          },
-          complete: function() {
-            window.simpanbyrBusy = false;
           }
         });
       }
 
-      function cektokos2(){
+      function cektokos2(){      
         $.ajax({
           url: 'cektokos2.php', // File tujuan
           type: 'POST', // Tentukan type nya POST atau GET
@@ -1500,7 +1308,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -1520,7 +1328,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -1540,7 +1348,7 @@
           
           },
           error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-            posAjaxError(xhr, thrownError);
+            alert(xhr.responseText); // munculkan alert
           }
         });
       }
@@ -2039,7 +1847,7 @@
                   $('#viewhapusnota').html(response.hasil);
               },
               error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-                posAjaxError(xhr, thrownError);
+                alert(xhr.responseText); // munculkan alert
               }
               
           })
@@ -2200,7 +2008,7 @@
                           $('#viewhapusnota').html(response.hasil);
                       },
                       error: function (xhr, ajaxOptions, thrownError) { // Ketika terjadi error
-                        posAjaxError(xhr, thrownError);
+                        alert(xhr.responseText); // munculkan alert
                       }
                       
                   })

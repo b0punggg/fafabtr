@@ -1,18 +1,7 @@
 <?php
-	$keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
+	$keyword = $_POST['keyword']; // Ambil data keyword yang dikirim dengan AJAX	
 	ob_start();
-	if (session_status() === PHP_SESSION_NONE) {
-		session_start();
-	}
-	include "config.php";
-	require_once __DIR__ . '/pos_ajax_bootstrap.php';
-	pos_require_mysqli_safe();
-	$connect=opendtcek();
-	$kd_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-	$param='';
-	if ($connect && $keyword !== '') {
-		$param=mysqli_real_escape_string($connect, $keyword);
-	}
+
 ?>
 <style>
   th {
@@ -42,11 +31,21 @@
       <th>OPSI</th>
     </tr>
     <?php
-    $no=0;
-    $unique_suffix = '_' . str_replace([' ', '.'], '', microtime(true)) . '_' . rand(10000, 99999);
-    if ($connect && $param !== '') {
+    include "config.php";
+    session_start();
+    $connect=opendtcek();
+    if (!$connect) {
+    echo json_encode(array('hasil' => '<div style="color:red;padding:10px">Koneksi database gagal, silakan coba beberapa saat lagi.</div>'));
+    exit;
+}
+    $kd_toko=$_SESSION['id_toko'];
+    $param=mysqli_escape_string($connect,$keyword); 
+    
     $sql=mysqli_query($connect,"SELECT * FROM mas_brg WHERE kd_brg='$param' ");
-    if (mysqli_is_result($sql)) {
+    $no=0;
+    // Tambahkan timestamp dan random untuk membuat id lebih unik dan menghindari duplikasi
+    // Gunakan microtime untuk memastikan unik setiap kali file dipanggil
+    $unique_suffix = '_' . str_replace([' ', '.'], '', microtime(true)) . '_' . rand(10000, 99999);
     while ($data=mysqli_fetch_array($sql)) { 	
       //echo $data['kd_kem1'];
       $no=$no+1;
@@ -144,9 +143,7 @@
         </td>    
       </tr>
       <?php } ?>
-    <?php
-    }
-    }
+    <?php } 
     if (!empty($param)){
       if ($no>=1){
         // cek jika satuan awal renteng pakai default 
@@ -182,8 +179,7 @@
           }
         }
       }
-    }
-    }
+    }  
     ?>  
 
   </table>
@@ -228,10 +224,8 @@ $('table.arrow-navsat').keydown(function(e){
 });
 </script>   	
 <?php
-  if ($connect) {
-    mysqli_close($connect);
-  }
+  mysqli_close($connect);
 	$html = ob_get_contents(); 
   ob_end_clean();
-	ajax_json_hasil($html, null);
+	echo json_encode(array('hasil'=>$html));
 ?>

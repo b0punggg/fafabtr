@@ -1,12 +1,6 @@
 <?php
+  $keyword = $_POST['keyword']; // Ambil data keyword yang dikirim dengan AJAX  
   ob_start();
-  include "config.php";
-  require_once __DIR__ . '/pos_ajax_bootstrap.php';
-  pos_require_mysqli_safe();
-  if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-  }
-  $keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
 ?>
 
 <div class="table-responsive hrf_arial" style="overflow-y:auto;overflow-x: auto;border-style: ridge;border-color:white;max-height: 430px">
@@ -27,9 +21,11 @@
         <th colspan="2" style="padding-top: 1px;padding-bottom: 1px;width: 2%">OPSI</th>
       </tr>
       <?php
+      include "config.php";
+      session_start();
       $connect=opendtcek();
-      $kd_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-      $oto=isset($_SESSION['kodepemakai']) ? $_SESSION['kodepemakai'] : '';
+      $kd_toko=$_SESSION['id_toko'];
+      $oto=$_SESSION['kodepemakai'];
       $cet="CETAK";
       if(isset($_SESSION['pilprint'])){
         $cet=$_SESSION['pilprint'];
@@ -37,42 +33,30 @@
       $no_fak='';
       $gtot=0;
       
-      $kode=0;
-      if ($connect) {
-        $sq_set=mysqli_query($connect,"SELECT * FROM seting");
-        if (mysqli_is_result($sq_set)) {
-          while($dt_set=mysqli_fetch_assoc($sq_set)){
-            if ($dt_set['nm_per']=='CETAK'){
-              $kode=$dt_set['kode'];  
-            }
-          }
-          mysqli_free_result($sq_set);
+      $sq_set=mysqli_query($connect,"SELECT * FROM seting");
+      while($dt_set=mysqli_fetch_assoc($sq_set)){
+        if ($dt_set['nm_per']=='CETAK'){
+          $kode=$dt_set['kode'];  
         }
       }
-      unset($dt_set);
+      mysqli_free_result($sq_set);unset($dt_set);
 
       $limit = 10; // Jumlah data per halamannya
-      $page = (isset($_POST['page'])) ? (int)$_POST['page'] : 1;
-      $limit_start = 0;
-      $sql=false;
-      $sql2=false;
-      $get_jumlah=array('jumlah'=>0);
       // $page = (isset($_POST['page']))? $_POST['page'] : 1;  
       // $limit_start = ($page - 1) * $limit;
       // echo '$limit_start='.$limit_start;
-      $params = $connect ? mysqli_real_escape_string($connect, $keyword) : '';
+      $params = mysqli_real_escape_string($connect, $keyword);
       $pecah=explode(';', $params);
-      $no_fakjual=strtoupper(isset($pecah[0]) ? $pecah[0] : '');
-      $tgl_fakjual=isset($pecah[1]) ? $pecah[1] : '';
-      $search_raw=isset($_POST['search']) ? $_POST['search'] : 'false';
-      $search=$connect ? mysqli_real_escape_string($connect, (string)$search_raw) : (string)$search_raw;
+      $no_fakjual=strtoupper($pecah[0]);
+      $tgl_fakjual=$pecah[1];
+      $search=mysqli_real_escape_string($connect, $_POST['search']);
       
 
-      if($search == 'true' && $connect){ // Jika ada data search yg 
+      if($search == 'true'){ // Jika ada data search yg 
          
         //cek dulu arahkan halman ke terakhir
           $cek = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko' ");  
-          $get_jum = mysqli_fetch_count_row($cek, 'jumlah', 0);
+          $get_jum = mysqli_fetch_array($cek);
           $page = ceil($get_jum['jumlah']/$limit);
           if($page==0){$page=1;}
           $limit_start = ($page - 1) * $limit;   
@@ -92,28 +76,24 @@
                 ORDER BY dum_jual.no_urut ASC LIMIT $limit_start, $limit");
             $sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko' ");  
           } 
-        $get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
+        $get_jumlah = mysqli_fetch_array($sql2);
       
       } else { // Jika user belum mengklik tombol search (PROSES TANPA AJAX)
         $page = (isset($_POST['page']))? $_POST['page'] : 1;  
         $limit_start = ($page - 1) * $limit;
-        if ($connect) {
-          $sql =mysqli_query($connect, "SELECT dum_jual.no_item,dum_jual.nm_brg,dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.discrp,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,dum_jual.ket,dum_jual.discvo,kemas.nm_sat1,pelanggan.nm_pel,dum_jual.id_bag FROM dum_jual 
-                  LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
-                  LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
-                  WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND  dum_jual.kd_toko='$kd_toko' 
-                  ORDER BY dum_jual.no_urut ASC LIMIT $limit_start, $limit");
-          $sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko' ");  
-          $get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
-        }
+        $sql =mysqli_query($connect, "SELECT dum_jual.no_item,dum_jual.nm_brg,dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.discrp,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,dum_jual.ket,dum_jual.discvo,kemas.nm_sat1,pelanggan.nm_pel,dum_jual.id_bag FROM dum_jual 
+                LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
+                LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
+                WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND  dum_jual.kd_toko='$kd_toko' 
+                ORDER BY dum_jual.no_urut ASC LIMIT $limit_start, $limit");
+            $sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko' ");  
+        $get_jumlah = mysqli_fetch_array($sql2);
       }
 
       //*** Hitung grand total untuk list penjualan
       $disc1=0;$disc2=0;$jmlsub=0;$totlaba=0;$item=0;$bayar='';$ditem=0;$tdisc2=0;$discvo=0;
       $gtotawal=0;$dnota=0;$totdnota=0;$totvo=0;
-      $cart_print_items = array();
-      $cek = $connect ? mysqli_query($connect, "SELECT * FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko'  order by no_urut ASC") : false;
-      if (mysqli_is_result($cek)) {
+      $cek = mysqli_query($connect, "SELECT * FROM dum_jual WHERE dum_jual.no_fakjual='$no_fakjual' AND dum_jual.tgl_jual='$tgl_fakjual' AND dum_jual.kd_toko='$kd_toko'  order by no_urut ASC");
       while ($cari=mysqli_fetch_array($cek)) {
         // if($cari['ket']<>'RETUR BARANG'){
           $disc1=$cari['discitem']/100;
@@ -141,21 +121,10 @@
           $gtotawal = $gtotawal+($cari['hrg_jual']*$cari['qty_brg']); 
           $gtot     = $gtot+round($jmlsub,2);
           $bayar    = $cari['bayar'];
-          $nm_sat_print = ' ' . ucwords(strtolower(ceknmkem2($cari['kd_sat'], $connect)));
-          $cart_print_items[] = array(
-            'nmbrg'   => trim(ucwords(strtolower($cari['nm_brg']))),
-            'qty'     => round($cari['qty_brg'], 0),
-            'sat'     => $nm_sat_print,
-            'hrg'     => round($cari['hrg_jual'], 0),
-            'disc'    => round($cari['discrp'], 0),
-            'discpct' => round($cari['discitem'], 0),
-            'subtot'  => round($jmlsub, 0),
-          );
         // }
         $item=$item+1;
 
-      }
-      }
+      }  
       unset($cek,$cari);
       //--------------------
 
@@ -163,12 +132,11 @@
       // jika sudah pernah bayar nota maka total pembayaran dihilangkan discount nota
       // jika belum total pembayaran memakai grand total list jual
       $gtotnota=0;$jmlsub=0;$jumhrg=0;$gdisc1=0;$ongkir=0;$gdisc2=0;
-      $dtcek=$connect ? mysqli_query($connect,"SELECT * FROM mas_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko'") : false;
-      if (mysqli_is_result($dtcek) && mysqli_count_rows($dtcek)>=1){
+      $dtcek=mysqli_query($connect,"SELECT * FROM mas_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko'");
+      if (mysqli_num_rows($dtcek)>=1){
         $sqljual=mysqli_fetch_assoc($dtcek);
         $ongkir=$sqljual['ongkir'];
-        $cekjual=$connect ? mysqli_query($connect,"SELECT * FROM dum_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko' AND tgl_jual='$tgl_fakjual'") : false;
-        if (mysqli_is_result($cekjual)) {
+        $cekjual=mysqli_query($connect,"SELECT * FROM dum_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko' AND tgl_jual='$tgl_fakjual'");
         while ($dtceks=mysqli_fetch_array($cekjual)) {
           if ($dtceks['discrp'] > 0 ) {
             $jmlsub=($dtceks['hrg_jual']-$dtceks['discrp'])*$dtceks['qty_brg'];
@@ -184,14 +152,13 @@
           if ($dtceks['discvo']>0){
             $gdisc2=$gdisc2+($dtceks['hrg_jual']*($dtceks['discvo']/100))*$dtceks['qty_brg'];
           }
-        }
-        }
+        }  
         $gtotnotas=($gtotnota+$ongkir)-round($gdisc1+$gdisc2,2);
         unset($dtceks,$cekjual);
       } else {
         $jumhrg=0;$gtotnota=0;
-        $dumcek=$connect ? mysqli_query($connect,"SELECT * FROM dum_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko'") : false;
-        if(mysqli_is_result($dumcek) && mysqli_count_rows($dumcek)>=1){
+        $dumcek=mysqli_query($connect,"SELECT * FROM dum_jual WHERE no_fakjual='$no_fakjual' AND kd_toko='$kd_toko'");
+        if(mysqli_num_rows($dumcek)>=1){
           while ($dtcekss=mysqli_fetch_array($dumcek)) {
             if ($dtcekss['discrp'] > 0 ) {
               $jmlsub=($dtcekss['hrg_jual']-$dtcekss['discrp'])*$dtcekss['qty_brg'];
@@ -221,7 +188,6 @@
       $no=$limit_start;$tot=0;$no_fakjual='';$tgl_jual='';$disc1=0;$disc2=0;$jmlsub=0;$totlaba=0;
       $kd_pel='';$nm_pel='';$kd_bayar='';$netto=0;$tgl_jt='2021-01-01';$diskon=0;$ditem=0;$jmlsub=0;$discvo=0;
       $ketnm='';
-      if (mysqli_is_result($sql)) {
       while($data = mysqli_fetch_array($sql))
       { // Ambil semua data dari hasil eksekusi $sql
         $no++;
@@ -310,19 +276,18 @@
         
        <?php  
       }
-      }
       //tampilkan retur barang
       $netret=0;$jmlsubret=0;$totret=0;$nor=$no;
       $j_hrg_jual = 0;$j_disctem=0; $j_discvo=0;$j_disrp=0; 
       if($bayar=="SUDAH")
       {
-        $cekretur=$connect ? mysqli_query($connect,"SELECT retur_jual.no_fakjual,retur_jual.qty_retur,dum_jual.no_item,dum_jual.nm_brg,dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.discrp,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,dum_jual.ket,dum_jual.discvo,kemas.nm_sat1,pelanggan.nm_pel FROM retur_jual
+        $cekretur=mysqli_query($connect,"SELECT retur_jual.no_fakjual,retur_jual.qty_retur,dum_jual.no_item,dum_jual.nm_brg,dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.discrp,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,dum_jual.ket,dum_jual.discvo,kemas.nm_sat1,pelanggan.nm_pel FROM retur_jual
         LEFT JOIN dum_jual ON retur_jual.no_urutjual=dum_jual.no_urut
         LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
         LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
-        WHERE retur_jual.no_fakjual='$no_fakjual' AND retur_jual.kd_toko='$kd_toko'") : false;
+        WHERE retur_jual.no_fakjual='$no_fakjual' AND retur_jual.kd_toko='$kd_toko'");
         
-        if(mysqli_is_result($cekretur) && mysqli_count_rows($cekretur)>=1){
+        if(mysqli_num_rows($cekretur)>=1){
           while($dq=mysqli_fetch_assoc($cekretur))
           {
             $nor++;
@@ -400,13 +365,11 @@
     <?php
   }  
   if ($no==0){
-    $cekits=$connect ? mysqli_query($connect,"SELECT kd_pel FROM pelanggan WHERE kd_pel='IDPEL-0' AND nm_pel='UMUM'") : false;
-    if (mysqli_is_result($cekits) && mysqli_count_rows($cekits)>=1){
+    $cekits=mysqli_query($connect,"SELECT kd_pel FROM pelanggan WHERE kd_pel='IDPEL-0' AND nm_pel='UMUM'");
+    if (mysqli_num_rows($cekits)>=1){
       $kd_pel='IDPEL-0';$nm_pel="UMUM";   
     }else {
-      if ($connect) {
-        mysqli_query($connect,"INSERT INTO pelanggan VALUES('','IDPEL-0','UMUM','UMUM','-')");
-      }
+      mysqli_query($connect,"INSERT INTO pelanggan VALUES('','IDPEL-0','UMUM','UMUM','-')");
       $kd_pel='IDPEL-0';$nm_pel="UMUM";   
     }
     $kd_bayar="TUNAI";$tgl_jt=date('Y-m-d');  
@@ -536,9 +499,8 @@
                         <th style="width: 30%">ALAMAT</th>
                       </tr>
                       <?php 
-                      $cekpel = $connect ? mysqli_query($connect, "SELECT * from pelanggan ORDER BY nm_pel ASC ") : false;
+                      $cekpel = mysqli_query($connect, "SELECT * from pelanggan ORDER BY nm_pel ASC ");
                       $xpel=0;
-                      if (mysqli_is_result($cekpel)) {
                       while ($datpel = mysqli_fetch_array($cekpel)){
                         $xpel++;
                       ?>
@@ -561,11 +523,7 @@
 
                       <?php   
                       }
-                      }
-                      if (mysqli_is_result($cekpel)) {
-                        mysqli_free_result($cekpel);
-                      }
-                      unset($datpel);
+                      unset($datpel);mysqli_free_result($cekpel);
                       ?>
                     </table>
                     <script>
@@ -1298,10 +1256,8 @@
   }
 </script>
 <?php
-  
+  mysqli_close($connect);
   $html = ob_get_contents(); 
   ob_end_clean();
-  ajax_json_hasil($html, array(
-    'cartPrint' => isset($cart_print_items) ? $cart_print_items : array(),
-  ));
+  echo json_encode(array('hasil'=>$html));
 ?>

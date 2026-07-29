@@ -1,54 +1,10 @@
 <?php
-  $keyword = isset($_POST['keyword']) ? $_POST['keyword'] : '';
+  $keyword=$_POST['keyword'];
   ob_start();
-  if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-  }
   include "config.php";
-  require_once __DIR__ . '/pos_ajax_bootstrap.php';
-  pos_require_mysqli_safe();
-  $con = opendtcek();
-  $kd_toko = isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-  $page = (isset($_POST['page'])) ? (int)$_POST['page'] : 1;
-  $limit = 15;
-  $limit_start = ($page - 1) * $limit;
-  $sql = false;
-  $sql2 = false;
-  $get_jumlah = array('jumlah' => 0);
-  $params = '';
-
-  if ($con && isset($_POST['search']) && $_POST['search'] == true) {
-    $param = mysqli_real_escape_string($con, $keyword);
-    if (!empty($param)) {
-      $xada = strpos($param, "like");
-      if ($xada !== false) {
-        $pecah = explode('like', $param);
-        $kunci = $pecah[0];
-        $kunci2 = $pecah[1];
-        $params = $kunci . " like '%" . trim($kunci2) . "%'";
-      }
-    } else {
-      $params = "";
-    }
-    if ($params == "") {
-      $sql = mysqli_query($con, "SELECT dum_jual.no_item,dum_jual.nm_brg, dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.tgl_jt,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,kemas.nm_sat1,pelanggan.kd_pel,pelanggan.nm_pel,dum_jual.nm_user FROM dum_jual 
-                LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
-                LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
-                WHERE dum_jual.kd_toko='$kd_toko' AND dum_jual.panding='0'
-                ORDER BY dum_jual.no_urut DESC LIMIT $limit_start, $limit");
-      $sql2 = mysqli_query($con, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE kd_toko='$kd_toko' AND dum_jual.panding='0'");
-    } else {
-      $sql = mysqli_query($con, "SELECT dum_jual.no_item,dum_jual.nm_brg, dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.tgl_jt,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,kemas.nm_sat1,pelanggan.kd_pel,pelanggan.nm_pel,dum_jual.nm_user FROM dum_jual 
-                LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
-                LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
-                WHERE dum_jual.kd_toko='$kd_toko' $params AND dum_jual.panding='0'
-                ORDER BY dum_jual.no_urut DESC LIMIT $limit_start, $limit");
-      $sql2 = mysqli_query($con, "SELECT COUNT(*) AS jumlah FROM dum_jual 
-              LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
-              WHERE dum_jual.kd_toko='$kd_toko' $params ");
-    }
-    $get_jumlah = mysqli_fetch_count_row($sql2, 'jumlah', 0);
-  }
+  session_start();
+  $con=opendtcek();
+  $kd_toko=$_SESSION['id_toko']; 
 ?>
 
 <div class="table-responsive hrf_arial" style="overflow-x: auto;border-style: ridge;max-height: 457px;min-height: 100px">
@@ -229,8 +185,51 @@
           </script>  
 
       <?php
+        $page = (isset($_POST['page']))? $_POST['page'] : 1;
+        $limit = 15; // Jumlah data per halamannya
+        $limit_start = ($page - 1) * $limit; 
+       
+
+      if(isset($_POST['search']) && $_POST['search'] == true){ // Jika ada data search yg 
+         $param = mysqli_real_escape_string($con, $keyword);
+        //$search=mysqli_real_escape_string($con, $_POST['search']);
+        if(!empty($param)){
+          $xada=strpos($param,"like");
+          if ($xada <> false){
+            $pecah=explode('like', $param);
+            $kunci=$pecah[0];
+            $kunci2=$pecah[1];
+            $params=$kunci." like '%".trim($kunci2)."%'";
+          } 
+            
+        }else{
+          $kunci='';
+          $kunci2=''; 
+          $params="";
+        }
+        //echo '$params='.$params;
+          if ($params=="") {   
+            $sql = mysqli_query($con, "SELECT dum_jual.no_item,dum_jual.nm_brg, dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.tgl_jt,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,kemas.nm_sat1,pelanggan.kd_pel,pelanggan.nm_pel,dum_jual.nm_user FROM dum_jual 
+                LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
+                LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
+                WHERE dum_jual.kd_toko='$kd_toko' AND dum_jual.panding='0'
+                ORDER BY dum_jual.no_urut DESC LIMIT $limit_start, $limit");
+            $sql2 = mysqli_query($con, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE kd_toko='$kd_toko' AND dum_jual.panding='0'");
+          }
+          else {
+            $sql =mysqli_query($con, "SELECT dum_jual.no_item,dum_jual.nm_brg, dum_jual.bayar,dum_jual.tgl_jt,dum_jual.tgl_jual,dum_jual.tgl_jt,dum_jual.no_fakjual,dum_jual.no_urut,dum_jual.hrg_jual,dum_jual.hrg_beli,dum_jual.kd_bayar,dum_jual.qty_brg,dum_jual.discitem,dum_jual.laba,dum_jual.kd_pel,dum_jual.kd_brg,dum_jual.kd_sat,kemas.nm_sat1,pelanggan.kd_pel,pelanggan.nm_pel,dum_jual.nm_user FROM dum_jual 
+                LEFT JOIN kemas ON dum_jual.kd_sat=kemas.no_urut
+                LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
+                WHERE dum_jual.kd_toko='$kd_toko' $params AND dum_jual.panding='0'
+                ORDER BY dum_jual.no_urut DESC LIMIT $limit_start, $limit");
+            $sql2 = mysqli_query($con, "SELECT COUNT(*) AS jumlah FROM dum_jual 
+              LEFT JOIN pelanggan ON dum_jual.kd_pel=pelanggan.kd_pel
+              WHERE dum_jual.kd_toko='$kd_toko' $params ");  
+          } 
+        $get_jumlah = mysqli_fetch_array($sql2);
+      
+      } 
       $no=$limit_start;
-      if (mysqli_is_result($sql)) {
       while ($data=mysqli_fetch_assoc($sql)){
        $no++;
        $netto=$data['hrg_jual']-($data['hrg_jual']*($data['discitem']/100));
@@ -256,7 +255,6 @@
         </tr>      
       <?php  
        }
-      }
       ?>
     </table> 
   </div>
@@ -314,10 +312,9 @@
     <?php } ?>
 
 <?php
-  if ($con) {
-    mysqli_close($con);
-  }
-  $html = ob_get_contents();
+  unset($data,$sql,$sql1);
+  mysqli_close($con);
+  $html = ob_get_contents(); 
   ob_end_clean();
-  ajax_json_hasil($html, null);
+  echo json_encode(array('hasil'=>$html));
 ?>

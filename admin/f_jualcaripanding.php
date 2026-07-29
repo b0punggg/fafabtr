@@ -1,57 +1,5 @@
 <?php
 ob_start();
-include "config.php";
-require_once __DIR__ . '/pos_ajax_bootstrap.php';
-pos_require_mysqli_safe();
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
-$connect=opendtcek();
-$kd_toko=isset($_SESSION['id_toko']) ? $_SESSION['id_toko'] : '';
-$id_user=isset($_SESSION['id_user']) ? $_SESSION['id_user'] : '';
-$page = (isset($_POST['page']))? $_POST['page'] : 1;
-$limit = 10;
-$limit_start = ($page - 1) * $limit;
-$sql = false;
-$get_jumlah = 0;
-
-if(isset($_SESSION['kodepemakai']) && $_SESSION['kodepemakai']=='2'){
-  $cid='';
-} else{
-  $cid='AND id_user='.$id_user;
-}
-
-$panding_sql = "SELECT tgl_jual,no_fakjual,kd_pel,sum(hrg_jual*qty_brg) as totjual,count(*) as jmlitem
-  FROM dum_jual WHERE panding=1 AND kd_toko='$kd_toko' $cid
-  GROUP BY no_fakjual,tgl_jual,kd_pel ORDER BY MIN(no_urut) ASC";
-
-if ($connect) {
-  if(isset($_POST['search']) && $_POST['search'] == true){
-    $sql = mysqli_query($connect, $panding_sql . " LIMIT $limit_start, $limit");
-    $xnum=0;
-    $sqlcek = mysqli_query($connect, $panding_sql);
-    if (mysqli_is_result($sqlcek)) {
-      while($datas=mysqli_fetch_array($sqlcek)){
-        $xnum++;
-      }
-      mysqli_free_result($sqlcek);
-    }
-    unset($datas);
-    $get_jumlah=$xnum;
-  } else {
-    $sql = mysqli_query($connect, $panding_sql . " LIMIT $limit_start, $limit");
-    $xnum=0;
-    $sqlcek = mysqli_query($connect, $panding_sql);
-    if (mysqli_is_result($sqlcek)) {
-      while($datas=mysqli_fetch_array($sqlcek)){
-        $xnum++;
-      }
-      mysqli_free_result($sqlcek);
-    }
-    unset($datas);
-    $get_jumlah=$xnum;
-  }
-}
 ?>
 
 <div class="table-responsive hrf_arial" style="overflow-y:auto;overflow-x: auto;border-style: ridge;border-color: white">
@@ -65,8 +13,50 @@ if ($connect) {
       <th>OPSI</th>
     </tr>
     <?php
+    include "config.php";
+    session_start();
+    $connect=opendtcek();
+    $kd_toko=$_SESSION['id_toko'];
+    $id_user=$_SESSION['id_user'];
+    $page = (isset($_POST['page']))? $_POST['page'] : 1;
+
+    $limit = 10; // Jumlah data per halamannya
+
+    $limit_start = ($page - 1) * $limit;
+    // echo '$limit_start='.$limit_start;
+    if($_SESSION['kodepemakai']=='2'){
+      $cid='';
+    } else{
+      $cid='AND id_user='.$id_user;
+    }
+    if(isset($_POST['search']) && $_POST['search'] == true){ // Jika ada data search yg 
+    	// echo $tgl_fak;
+       $sql = mysqli_query($connect, "SELECT tgl_jual,no_fakjual,kd_pel,sum(hrg_jual*qty_brg) as totjual,count(*) as jmlitem FROM dum_jual WHERE panding=true AND kd_toko='$kd_toko' $cid group by no_fakjual order by no_urut ASC LIMIT $limit_start, $limit");
+
+       //$sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE kd_toko='$kd_toko' AND panding=true ORDER BY no_urut");
+       $xnum=0;
+       $sqlcek = mysqli_query($connect, "SELECT tgl_jual,no_fakjual,kd_pel,sum(hrg_jual*qty_brg) as totjual,count(*) as jmlitem FROM dum_jual WHERE panding=true AND kd_toko='$kd_toko' $cid group by no_fakjual order by no_urut ASC");
+       while($datas=mysqli_fetch_array($sqlcek)){
+       $xnum++; 
+       }
+       unset($datas,$sqlcek);
+       $get_jumlah=$xnum; 
+       
+    }else{ // Jika user belum mengklik tombol search (PROSES TANPA AJAX)
+      // $id_apt=$_SESSION['id_apt'];
+      $sql = mysqli_query($connect, "SELECT tgl_jual,no_fakjual,kd_pel,sum(hrg_jual*qty_brg) as totjual,count(*) as jmlitem FROM dum_jual WHERE panding=true AND kd_toko='$kd_toko' $cid group by no_fakjual order by no_urut ASC LIMIT $limit_start, $limit");
+
+       //$sql2 = mysqli_query($connect, "SELECT COUNT(*) AS jumlah FROM dum_jual WHERE kd_toko='$kd_toko' AND panding=true ORDER BY no_urut");
+       $xnum=0;
+       $sqlcek = mysqli_query($connect, "SELECT tgl_jual,no_fakjual,kd_pel,sum(hrg_jual*qty_brg) as totjual,count(*) as jmlitem FROM dum_jual WHERE panding=true AND kd_toko='$kd_toko' $cid group by no_fakjual order by no_urut ASC");
+       while($datas=mysqli_fetch_array($sqlcek)){
+       $xnum++; 
+       }
+       unset($datas,$sqlcek);
+       $get_jumlah=$xnum; 
+
+    }
     $no=0;
-    if (mysqli_is_result($sql)) {
     while($data = mysqli_fetch_array($sql)){ // Ambil semua data dari hasil eksekusi $sql
       $no++;
       $no_fakjual=$data['no_fakjual'];$tgl_jual=$data['tgl_jual'];
@@ -99,7 +89,6 @@ if ($connect) {
       </tr>
       
     <?php
-    }
     }
     ?>
     
@@ -159,10 +148,10 @@ if ($connect) {
 		</nav>
 	</div>	
 <?php
-  if ($connect) {
-    mysqli_close($connect);
-  }
-	$html = ob_get_contents();
+  mysqli_close($connect);
+	$html = ob_get_contents(); // Masukan isi dari view.php ke dalam variabel $html
 	ob_end_clean();
-	ajax_json_hasil($html, null);
+	// Buat array dengan index hasil dan value nya $html
+	// Lalu konversi menjadi JSON
+	echo json_encode(array('hasil'=>$html));
 ?>
