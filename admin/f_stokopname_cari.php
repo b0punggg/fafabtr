@@ -5,6 +5,7 @@
 	session_start();
   $kd_toko=$_SESSION['id_toko'];
 	$conopname=opendtcek();
+  $satuan_input = (isset($_POST['satuan_input']) && $_POST['satuan_input'] === 'pack') ? 'pack' : 'kecil';
 ?>
 <div class="table-responsive" style="overflow-x: auto;border-style: ridge;border-color: white;min-height:120px">
   <table id="table" class="table-bordered table-hover arrow-nav" style="font-size:9pt; position: sticky;width: 100%;border-collapse: collapse;white-space: nowrap;">
@@ -105,7 +106,7 @@
       <th width="10%">ID. TOKO</th>
       <th width="8%">STOK</th>
       <!-- <th width="6%">SAT</th> -->
-      <th width="12%">ADJUST</th>
+      <th width="12%">ADJUST<?php if ($satuan_input === 'pack') { ?><br><small>(pack)</small><?php } else { ?><br><small>(terkecil)</small><?php } ?></th>
       <th width="5%">KET</th>
       <th width="10%">CEK TERAKHIR</th>
       <th width="4%">NOTE</th>
@@ -168,8 +169,31 @@
     $no=$limit_start;$cekada=0;
     while($data = mysqli_fetch_array($sql)){ // Ambil semua data dari hasil eksekusi $sql
       $no++;	
-      $xsat=explode(';',carisatkecil($data['kd_brg']));	
+      $xsat=explode(';',carisatkecil2($data['kd_brg'], $conopname));	
       $nmsat=ceknmkem2($xsat[0], $conopname);
+      $has_pack = false;
+      $faktor_pack = 1;
+      $nmsat_pack = '';
+      $xpack = carisatbesar2($data['kd_brg'], $conopname);
+      if (!empty($xpack)) {
+        $xp = explode(';', $xpack);
+        if (isset($xp[0]) && $xp[0] != $xsat[0]) {
+          $has_pack = true;
+          $faktor_pack = floatval(konjumbrg2($xp[0], $data['kd_brg'], $conopname));
+          if ($faktor_pack <= 0) { $faktor_pack = 1; }
+          $nmsat_pack = ceknmkem2($xp[0], $conopname);
+        }
+      }
+      $maks_kecil = cekmaks($data['kd_brg'], $kd_toko, $conopname);
+      $maks_display = ($satuan_input === 'pack' && $has_pack && $faktor_pack > 0)
+        ? round($maks_kecil / $faktor_pack, 4)
+        : $maks_kecil;
+      $stok_pack_txt = '';
+      if ($has_pack && $faktor_pack > 0) {
+        $stok_pack_val = round(floatval($data['stok_juals']) / $faktor_pack, 2);
+        $stok_pack_txt = '<br><small style="color:#555">(' . $stok_pack_val . ' ' . strtolower($nmsat_pack) . ')</small>';
+      }
+      $adj_sat_label = ($satuan_input === 'pack' && $has_pack) ? strtolower($nmsat_pack) : strtolower($nmsat);
       $cekada=carinote($data['kd_brg'],$kd_toko,$conopname); 
       //cek stok opname
       $kdbrg=$data['kd_brg'];
@@ -195,32 +219,23 @@
           <?php echo $data['kd_toko']; ?>
         </td>
         <td align="middle"> 
-          <?php echo $data['stok_juals'].' '.strtolower($nmsat); ?>
+          <?php echo $data['stok_juals'].' '.strtolower($nmsat).$stok_pack_txt; ?>
         </td>
         <td>
-          <input id="<?=$no.'adpil'?>" class="form-control" type="number" min="0" max="<?=cekmaks($data['kd_brg'],$kd_toko,'$conopname');?>"  value="" style="border: none;background-color: transparent;text-align: center;font-size:9pt;min-width:70px" onkeyup="
-            if (event.keyCode==13) {
-              if (this.value <= <?=cekmaks($data['kd_brg'],$kd_toko,$conopname);?>){
-                  if (confirm('Apakah Kode Barang <?=$data['kd_brg']?> akan dilakukan penyesuaian ?')){
-                document.getElementById('keyadjust').value=this.value+';<?=$data['kd_brg']?>';savedata();caribrgstok(1,true);}else{document.getElementById('keyadjust').value='';
-                } 
-              } else {
-                popnew_error('Maksimal penyesuaian '+'<?=cekmaks($data['kd_brg'],$kd_toko,$conopname).' '.$nmsat ?>');
-              } 		
-            }" aria-describedby="button-addon2">
+          <input id="<?=$no.'adpil'?>" class="form-control opname-adj-input" type="number" min="0" step="any" max="<?=$maks_display?>" placeholder="<?=$adj_sat_label?>" value=""
+            data-kd-brg="<?=htmlspecialchars($data['kd_brg'], ENT_QUOTES)?>"
+            data-maks-kecil="<?=$maks_kecil?>"
+            data-faktor-pack="<?=$faktor_pack?>"
+            data-has-pack="<?=$has_pack ? '1' : '0'?>"
+            data-nmsat="<?=htmlspecialchars($nmsat, ENT_QUOTES)?>"
+            data-nmsat-pack="<?=htmlspecialchars($nmsat_pack, ENT_QUOTES)?>"
+            data-nm-brg="<?=htmlspecialchars($data['nm_brg'], ENT_QUOTES)?>"
+            data-stok="<?=$data['stok_juals']?>"
+            style="border: none;background-color: transparent;text-align: center;font-size:9pt;min-width:70px" aria-describedby="button-addon2">
+          <small style="font-size:7pt;color:#666"><?=$adj_sat_label?></small>
         </td>
         <td align="center">
-          <button class="btn btn-sm btn-outline-success fa fa-hdd-o" type="button" id="<?=$no.'btn-pil'?>" onclick="
-            if (document.getElementById('<?=$no.'adpil'?>').value <= <?=cekmaks($data['kd_brg'],$kd_toko, $conopname);?> && document.getElementById('<?=$no.'adpil'?>').value !=''){
-              document.getElementById('keyadjust').value=document.getElementById('<?=$no.'adpil'?>').value+';<?=$data['kd_brg']?>';
-              document.getElementById('fproses').style.display='block';
-              document.getElementById('stok_awal').value='<?=$data['stok_juals']?>';
-              document.getElementById('stok_akhir').value=document.getElementById('<?=$no.'adpil'?>').value;
-              document.getElementById('ketbrg').innerHTML='<p> Nama Barang : '+'<?=$data['nm_brg']?>'+'</p>';
-              document.getElementById('ket_ad').focus();
-            }else{
-              popnew_error('Maksimal penyesuaian '+'<?=cekmaks($data['kd_brg'],$kd_toko,$conopname).' '.$nmsat ?>');
-            }">
+          <button class="btn btn-sm btn-outline-success fa fa-hdd-o opname-adj-btn" type="button" id="<?=$no.'btn-pil'?>" onclick="opnameAdjustModal(document.getElementById('<?=$no.'adpil'?>'))">
           </button>
         </td>
         <td align="center"><?=$cektgl.'<br>'.$userx?></td>

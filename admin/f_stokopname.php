@@ -58,8 +58,110 @@
 </style>
 
 <script>
+  function opnameGetSatuanMode() {
+    var el = document.getElementById('satuan_input');
+    return (el && el.value === 'pack') ? 'pack' : 'kecil';
+  }
+
+  function opnameQtyToSmallest(qty, faktorPack, hasPack) {
+    qty = parseFloat(qty);
+    if (isNaN(qty)) return NaN;
+    if (opnameGetSatuanMode() === 'pack' && hasPack && faktorPack > 0) {
+      return qty * faktorPack;
+    }
+    return qty;
+  }
+
+  function opnameGetMaksDisplay(maksKecil, faktorPack, hasPack) {
+    maksKecil = parseFloat(maksKecil);
+    if (opnameGetSatuanMode() === 'pack' && hasPack && faktorPack > 0) {
+      return maksKecil / faktorPack;
+    }
+    return maksKecil;
+  }
+
+  function opnameGetSatLabel(nmsat, nmsatPack, hasPack) {
+    if (opnameGetSatuanMode() === 'pack' && hasPack) return nmsatPack;
+    return nmsat;
+  }
+
+  function opnameReadInputMeta(el) {
+    return {
+      kdBrg: el.getAttribute('data-kd-brg'),
+      maksKecil: parseFloat(el.getAttribute('data-maks-kecil')) || 0,
+      faktorPack: parseFloat(el.getAttribute('data-faktor-pack')) || 1,
+      hasPack: el.getAttribute('data-has-pack') === '1',
+      nmsat: el.getAttribute('data-nmsat') || '',
+      nmsatPack: el.getAttribute('data-nmsat-pack') || '',
+      nmBrg: el.getAttribute('data-nm-brg') || '',
+      stok: el.getAttribute('data-stok') || ''
+    };
+  }
+
+  function opnameAdjustQuick(inputEl) {
+    var raw = inputEl.value;
+    if (raw === '') return;
+    var m = opnameReadInputMeta(inputEl);
+    var maksDisp = opnameGetMaksDisplay(m.maksKecil, m.faktorPack, m.hasPack);
+    var qty = parseFloat(raw);
+    if (isNaN(qty) || qty < 0) {
+      popnew_error('Nilai penyesuaian tidak valid.');
+      return;
+    }
+    if (qty > maksDisp + 0.0001) {
+      popnew_error('Maksimal penyesuaian ' + maksDisp + ' ' + opnameGetSatLabel(m.nmsat, m.nmsatPack, m.hasPack));
+      return;
+    }
+    var qtySmallest = opnameQtyToSmallest(qty, m.faktorPack, m.hasPack);
+    if (qtySmallest > m.maksKecil + 0.0001) {
+      popnew_error('Maksimal penyesuaian ' + maksDisp + ' ' + opnameGetSatLabel(m.nmsat, m.nmsatPack, m.hasPack));
+      return;
+    }
+    if (confirm('Apakah Kode Barang ' + m.kdBrg + ' akan dilakukan penyesuaian ?')) {
+      document.getElementById('keyadjust').value = qtySmallest + ';' + m.kdBrg;
+      savedata();
+      caribrgstok(1, true);
+    } else {
+      document.getElementById('keyadjust').value = '';
+    }
+  }
+
+  function opnameAdjustModal(inputEl) {
+    var raw = inputEl.value;
+    if (raw === '') return;
+    var m = opnameReadInputMeta(inputEl);
+    var maksDisp = opnameGetMaksDisplay(m.maksKecil, m.faktorPack, m.hasPack);
+    var qty = parseFloat(raw);
+    if (isNaN(qty) || qty < 0 || qty > maksDisp + 0.0001) {
+      popnew_error('Maksimal penyesuaian ' + maksDisp + ' ' + opnameGetSatLabel(m.nmsat, m.nmsatPack, m.hasPack));
+      return;
+    }
+    var qtySmallest = opnameQtyToSmallest(qty, m.faktorPack, m.hasPack);
+    if (qtySmallest > m.maksKecil + 0.0001) {
+      popnew_error('Maksimal penyesuaian ' + maksDisp + ' ' + opnameGetSatLabel(m.nmsat, m.nmsatPack, m.hasPack));
+      return;
+    }
+    var satLabel = opnameGetSatLabel(m.nmsat, m.nmsatPack, m.hasPack);
+    document.getElementById('keyadjust').value = qtySmallest + ';' + m.kdBrg;
+    document.getElementById('fproses').style.display = 'block';
+    document.getElementById('stok_awal').value = m.stok + ' ' + m.nmsat;
+    document.getElementById('stok_akhir').value = raw + ' ' + satLabel;
+    if (opnameGetSatuanMode() === 'pack' && m.hasPack) {
+      document.getElementById('stok_akhir_smallest').value = qtySmallest + ' ' + m.nmsat;
+      document.getElementById('row_stok_smallest').style.display = '';
+    } else {
+      document.getElementById('row_stok_smallest').style.display = 'none';
+    }
+    document.getElementById('ketbrg').innerHTML = '<p> Nama Barang : ' + m.nmBrg + '</p>';
+    document.getElementById('ket_ad').focus();
+  }
+
   function caribrgstok(page_number, search){
     $(this).html("ketik pencarian").attr("disabled", "disabled");
+    var satuanEl = document.getElementById('satuan_input');
+    if (satuanEl) {
+      try { sessionStorage.setItem('opname_satuan_input', satuanEl.value); } catch (e) {}
+    }
 
     $.ajax({
       url: 'f_stokopname_cari.php', // File tujuan
@@ -68,7 +170,8 @@
         keyword: $("#keycari").val(),
         page: page_number,
         search: search,
-        filter_stok: $("#filter_stok").val()
+        filter_stok: $("#filter_stok").val(),
+        satuan_input: $("#satuan_input").val()
       },
       dataType: "json",
       beforeSend: function(e) {
@@ -332,12 +435,18 @@
     <div class="w3-container" style="padding:6px 12px;background:#fff;border:1px solid #ddd;margin-bottom:4px">
       <div class="form-inline" style="flex-wrap:wrap">
         <label for="filter_stok" class="mr-2 mb-1" style="font-size:9pt;font-weight:bold"><i class="fa fa-filter"></i> Filter stok:</label>
-        <select id="filter_stok" class="form-control form-control-sm mb-1" style="font-size:9pt;min-width:180px" onchange="caribrgstok(1, true);loadProgressOpname();">
+        <select id="filter_stok" class="form-control form-control-sm mb-1 mr-3" style="font-size:9pt;min-width:180px" onchange="caribrgstok(1, true);loadProgressOpname();">
           <option value="semua">Semua barang</option>
           <option value="ada_stok">Hanya ada stok</option>
           <option value="stok_nol">Hanya stok 0</option>
         </select>
+        <label for="satuan_input" class="mr-2 mb-1" style="font-size:9pt;font-weight:bold"><i class="fa fa-cubes"></i> Satuan input ADJUST:</label>
+        <select id="satuan_input" class="form-control form-control-sm mb-1" style="font-size:9pt;min-width:200px" onchange="caribrgstok(1, true);">
+          <option value="kecil">Satuan terkecil</option>
+          <option value="pack">Pack / satuan besar</option>
+        </select>
       </div>
+      <small class="text-muted" style="font-size:8pt">Mode pack: kolom ADJUST diisi jumlah stok akhir per pack; sistem otomatis konversi ke satuan terkecil saat simpan.</small>
     </div>
 
     <div id="viewcaribrgstok"><script>caribrgstok(1,true)</script></div>
@@ -406,6 +515,14 @@
               </div>
             </div>	
         </div>
+        <div class="col-sm-12" id="row_stok_smallest" style="display:none">
+            <div class="form-group row">
+              <label for="stok_akhir_smallest" class="col-sm-4 col-form-label"><b>Setara terkecil</b></label>
+              <div class="col-sm-8">
+                <input class="form-control hrf_arial" id="stok_akhir_smallest" type="text" disabled style="border: 1px solid #ccc;font-size: 10pt;background:#f8f9fa">
+              </div>
+            </div>
+        </div>
         <div class="row container">
           <div class="col-sm">
             <b>Silahkan isi keterangan penyesuaian</b>
@@ -439,6 +556,17 @@
 
 <script>
   $(document).ready(function(){
+    try {
+      var savedSat = sessionStorage.getItem('opname_satuan_input');
+      if (savedSat && document.getElementById('satuan_input')) {
+        document.getElementById('satuan_input').value = savedSat;
+      }
+    } catch (e) {}
+    $(document).on('keyup', '.opname-adj-input', function(e) {
+      if (e.keyCode === 13) {
+        opnameAdjustQuick(this);
+      }
+    });
     $(".loader1").fadeOut();
     loadProgressOpname();
   });
