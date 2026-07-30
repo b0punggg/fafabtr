@@ -22,7 +22,10 @@
     exit;
   }
   
-  // Hapus promo yang periode sudah berakhir secara otomatis sebelum menampilkan list
+  // CATATAN PERFORMA:
+  // hapusPromoBerakhir() SEBAIKNYA dijalankan via cron job terpisah (misal sekali sehari),
+  // bukan pada setiap request list/pagination, agar tidak menambah beban & lock di setiap load.
+  // Untuk sementara masih dipanggil di sini agar perilaku lama tetap terjaga.
   hapusPromoBerakhir($connect, $kd_toko);
   
   $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
@@ -73,8 +76,60 @@
   $total_promo = $count_data['total'];
   $total_pages = ceil($total_promo / $limit);
   
-  // Debug: Log jumlah promo yang ditemukan
-  // error_log("Total promo found: " . $total_promo);
+  // ==========================================================================
+  // PERBAIKAN PERFORMA: ambil semua data promo ke array PHP dulu, kumpulkan
+  // no_promo-nya, lalu ambil SEMUA detail barang dalam SATU query batch
+  // (menggunakan WHERE no_promo IN (...)) alih-alih 1 query per promo (N+1 query).
+  // ==========================================================================
+  $promo_rows = array();
+  $no_promo_list = array();
+  
+  while ($row_promo = mysqli_fetch_array($result_promo)) {
+    $promo_rows[] = $row_promo;
+    $no_promo_list[] = mysqli_real_escape_string($connect, $row_promo['no_promo']);
+  }
+  
+  // Kelompokkan detail barang per no_promo
+  $detail_by_promo = array();
+  
+  if (count($no_promo_list) > 0) {
+    // Bangun daftar no_promo untuk klausa IN (...)
+    $no_promo_quoted = array();
+    foreach ($no_promo_list as $np) {
+      $no_promo_quoted[] = "'" . $np . "'";
+    }
+    $in_clause = implode(',', $no_promo_quoted);
+    
+    // Satu query untuk mengambil detail SEMUA promo pada halaman ini sekaligus
+    $query_detail_all = "SELECT 
+                            dpd.no_promo,
+                            dpd.kd_brg,
+                            dpd.disc_rupiah AS disc_rupiah_item,
+                            dpd.disc_persen AS disc_persen_item,
+                            dpd.no_urut,
+                            mas_brg.nm_brg,
+                            mas_brg.kd_bar
+                          FROM disc_promo_detail dpd
+                          LEFT JOIN mas_brg ON dpd.kd_brg = mas_brg.kd_brg AND dpd.kd_toko = mas_brg.kd_toko
+                          WHERE dpd.no_promo IN ($in_clause) AND dpd.kd_toko = '$kd_toko'
+                          ORDER BY dpd.no_promo ASC, dpd.no_urut ASC";
+    
+    $result_detail_all = mysqli_query($connect, $query_detail_all);
+    
+    if (!$result_detail_all) {
+      $error_msg = mysqli_error($connect);
+      echo json_encode(array('hasil' => '<div class="empty-state"><i class="fa fa-exclamation-triangle"></i><div class="empty-state-text">Error query detail barang: ' . htmlspecialchars($error_msg) . '</div></div>'));
+      exit;
+    }
+    
+    while ($row_detail = mysqli_fetch_array($result_detail_all)) {
+      $key = $row_detail['no_promo'];
+      if (!isset($detail_by_promo[$key])) {
+        $detail_by_promo[$key] = array();
+      }
+      $detail_by_promo[$key][] = $row_detail;
+    }
+  }
 ?>
 
 <style>
@@ -269,9 +324,9 @@
 
 <div class="history-container">
   <?php
-  if ($result_promo && mysqli_num_rows($result_promo) > 0) {
+  if (count($promo_rows) > 0) {
     $no = $limit_start + 1;
-    while ($row_promo = mysqli_fetch_array($result_promo)) {
+    foreach ($promo_rows as $row_promo) {
       $no_promo_current = $row_promo['no_promo'];
       $nama_promo = $row_promo['nama_promo'];
       $by_nama = $row_promo['by_nama'];
@@ -282,32 +337,10 @@
       $tgl_akhir_formatted = date('d/m/Y', strtotime($row_promo['tgl_akhir']));
       $created_formatted = date('d/m/Y H:i', strtotime($row_promo['created_at']));
       
-      // Ambil detail barang untuk promo ini saja (tidak digabung dengan promo lain)
-      // PENTING: Query ini hanya mengambil barang yang disimpan dengan no_promo ini
-      // Setiap promo memiliki detail barang yang terpisah, tidak tercampur dengan promo lain
-      // Detail barang hanya sesuai dengan no_promo ini, sesuai dengan barang yang di-load saat membuat promo ini
-      $no_promo_escaped = mysqli_real_escape_string($connect, $no_promo_current);
-      $query_detail = "SELECT 
-                        dpd.kd_brg,
-                        dpd.disc_rupiah AS disc_rupiah_item,
-                        dpd.disc_persen AS disc_persen_item,
-                        mas_brg.nm_brg,
-                        mas_brg.kd_bar
-                      FROM disc_promo_detail dpd
-                      LEFT JOIN mas_brg ON dpd.kd_brg = mas_brg.kd_brg AND dpd.kd_toko = mas_brg.kd_toko
-                      WHERE dpd.no_promo = '$no_promo_escaped' AND dpd.kd_toko = '$kd_toko'
-                      ORDER BY dpd.no_urut ASC";
-      
-      $result_detail = mysqli_query($connect, $query_detail);
-      
-      // Error handling untuk query detail barang
-      if (!$result_detail) {
-        $error_msg = mysqli_error($connect);
-        echo '<div style="padding: 10px; color: red;">Error query detail barang: ' . htmlspecialchars($error_msg) . '</div>';
-        continue;
-      }
-      
-      $jml_barang = mysqli_num_rows($result_detail);
+      // Ambil detail barang untuk promo ini dari hasil batch query yang sudah dikelompokkan
+      // (bukan query baru per promo, sudah diambil sekaligus di atas)
+      $detail_items = isset($detail_by_promo[$no_promo_current]) ? $detail_by_promo[$no_promo_current] : array();
+      $jml_barang = count($detail_items);
       ?>
       
       <div class="history-item" id="item_<?php echo $promo_id; ?>" onclick="togglePromo('<?php echo $promo_id; ?>')">
@@ -403,7 +436,7 @@
               <tbody>
                 <?php
                 $no_item = 1;
-                while ($row_detail = mysqli_fetch_array($result_detail)) {
+                foreach ($detail_items as $row_detail) {
                   ?>
                   <tr>
                     <td style="text-align: center;"><?php echo $no_item++; ?></td>
