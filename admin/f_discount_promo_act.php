@@ -70,7 +70,11 @@ if (mysqli_num_rows($cek_promo) > 0) {
   $bulan = date('m');
   $max_no = 0;
   
-  $query_no = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING(no_promo, 10) AS UNSIGNED)) as max_no FROM disc_promo WHERE no_promo LIKE 'JS-DIS $tahun$bulan.%' AND kd_toko='$kd_toko'");
+  $query_no = mysqli_query($connect, "
+  SELECT MAX(CAST(SUBSTRING_INDEX(no_promo, '.', -1) AS UNSIGNED)) as max_no 
+  FROM disc_promo 
+  WHERE no_promo LIKE 'JS-DIS $tahun$bulan.%' AND kd_toko='$kd_toko'
+");
   if ($query_no) {
     $data_no = mysqli_fetch_assoc($query_no);
     if ($data_no && isset($data_no['max_no'])) {
