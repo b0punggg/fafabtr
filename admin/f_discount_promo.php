@@ -33,11 +33,8 @@
    // Cek apakah tabel sudah ada, jika belum skip query
    $table_check = mysqli_query($connect, "SHOW TABLES LIKE 'disc_promo'");
    if (mysqli_num_rows($table_check) > 0) {
-    $query_no = mysqli_query($connect, "
-    SELECT MAX(CAST(SUBSTRING_INDEX(no_promo, '.', -1) AS UNSIGNED)) as max_no 
-    FROM disc_promo 
-    WHERE no_promo LIKE 'JS-DIS $tahun$bulan.%' AND kd_toko='$kd_toko'
-  ");
+     // FIX: gunakan SUBSTRING_INDEX agar tidak bergantung pada panjang prefix nomor promo
+     $query_no = mysqli_query($connect, "SELECT MAX(CAST(SUBSTRING_INDEX(no_promo, '.', -1) AS UNSIGNED)) as max_no FROM disc_promo WHERE no_promo LIKE 'JS-DIS $tahun$bulan.%' AND kd_toko='$kd_toko'");
      if ($query_no) {
        $data_no = mysqli_fetch_assoc($query_no);
        if ($data_no && isset($data_no['max_no'])) {
@@ -61,11 +58,12 @@
       
       function loadBarang() {
         var by_nama = $("#by_nama").val();
+        var by_bagian = $("#by_bagian").val();
         var disc_rupiah = $("#disc_rupiah").val() || 0;
         var disc_persen = $("#disc_persen").val() || 0;
         
-        if (!by_nama) {
-          alert("Masukkan nama brand/kategori terlebih dahulu");
+        if (!by_nama && !by_bagian) {
+          alert("Masukkan nama brand/kategori atau pilih bagian terlebih dahulu");
           return;
         }
         
@@ -74,6 +72,7 @@
           type: 'POST',
           data: {
             by_nama: by_nama,
+            by_bagian: by_bagian,
             disc_rupiah: disc_rupiah,
             disc_persen: disc_persen,
             kd_toko: '<?php echo $kd_toko; ?>'
@@ -257,6 +256,7 @@
                 $("#disc_rupiah").val("0");
                 $("#disc_persen").val("0");
                 $("#by_nama").val("");
+                $("#by_bagian").val("");
                 $("#listbarang").html('<tr><td colspan="6" style="text-align: center; padding: 30px; color: #666;"><i class="fa fa-info-circle" style="font-size: 18px; margin-right: 5px;"></i> Klik "Load Barang" untuk memuat daftar barang</td></tr>');
                 
                 // Generate nomor promo baru via AJAX
@@ -344,24 +344,39 @@
               </div>
               
               <div class="w3-row" style="margin-top: 10px;">
-                <div class="w3-col s12 m6 l3" style="padding: 5px 10px;">
+                <div class="w3-col s12 m6 l2" style="padding: 5px 10px;">
                   <div class="form-group" style="margin-bottom: 10px;">
                     <label for="disc_rupiah" class="hrf_arial" style="display: block;margin-bottom: 5px;font-weight: bold;color: #333;"><b>Disc Rupiah</b></label>
                     <input type="number" id="disc_rupiah" name="disc_rupiah" class="form-control hrf_arial" value="0" min="0" style="width: 100%;padding: 8px;border: 1px solid #ccc;border-radius: 3px;font-size: 14px;" placeholder="0">
                   </div>
                 </div>
                 
-                <div class="w3-col s12 m6 l3" style="padding: 5px 10px;">
+                <div class="w3-col s12 m6 l2" style="padding: 5px 10px;">
                   <div class="form-group" style="margin-bottom: 10px;">
                     <label for="disc_persen" class="hrf_arial" style="display: block;margin-bottom: 5px;font-weight: bold;color: #333;"><b>Disc Persen</b></label>
                     <input type="number" id="disc_persen" name="disc_persen" class="form-control hrf_arial" value="0" min="0" max="100" style="width: 100%;padding: 8px;border: 1px solid #ccc;border-radius: 3px;font-size: 14px;" placeholder="0">
                   </div>
                 </div>
                 
-                <div class="w3-col s12 m6 l4" style="padding: 5px 10px;">
+                <div class="w3-col s12 m6 l3" style="padding: 5px 10px;">
                   <div class="form-group" style="margin-bottom: 10px;">
                     <label for="by_nama" class="hrf_arial" style="display: block;margin-bottom: 5px;font-weight: bold;color: #333;"><b>By Nama</b></label>
                     <input type="text" id="by_nama" name="by_nama" class="form-control hrf_arial" style="width: 100%;padding: 8px;border: 1px solid #ccc;border-radius: 3px;font-size: 14px;" placeholder="Nama Brand/Kategori">
+                  </div>
+                </div>
+
+                <div class="w3-col s12 m6 l3" style="padding: 5px 10px;">
+                  <div class="form-group" style="margin-bottom: 10px;">
+                    <label for="by_bagian" class="hrf_arial" style="display: block;margin-bottom: 5px;font-weight: bold;color: #333;"><b>By Bagian</b></label>
+                    <select id="by_bagian" name="by_bagian" class="form-control hrf_arial" style="width: 100%;padding: 8px;border: 1px solid #ccc;border-radius: 3px;font-size: 14px;">
+                      <option value="">-- Semua Bagian --</option>
+                      <?php 
+                        $sqd_bag = mysqli_query($connect, "SELECT no_urut, nm_bag FROM bag_brg ORDER BY nm_bag ASC");
+                        while ($dtc_bag = mysqli_fetch_assoc($sqd_bag)) { 
+                      ?>
+                        <option value="<?php echo $dtc_bag['no_urut']; ?>"><?php echo htmlspecialchars($dtc_bag['nm_bag']); ?></option>
+                      <?php } ?>
+                    </select>
                   </div>
                 </div>
                 
@@ -439,4 +454,3 @@
   </div>
 </body>
 </html>
-
