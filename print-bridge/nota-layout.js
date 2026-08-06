@@ -98,23 +98,37 @@ function buildNotaText(data) {
   lines.push("");
   lines.push(p() + "No.Struk " + spasiStr("", 5) + ":" + spasiStr(data.no_fakjual || "", 20));
   lines.push(p() + "Tanggal  " + spasiStr("", 5) + ":" + spasiStr(gantitgl(tglJual), 10));
-  if (data.nm_pel) {
-    lines.push(p() + "Pembeli  " + spasiStr("", 5) + ":" + spasiStr(data.nm_pel, 30));
+
+  // Pembeli = pelanggan saja (baris pertama jika nm_pel multi-line dari versi lama)
+  // Label Alamat TIDAK dicetak.
+  const nmPelRaw = String(
+    data.nm_pel_asli != null && String(data.nm_pel_asli).trim() !== ""
+      ? data.nm_pel_asli
+      : data.nm_pel || ""
+  );
+  const nmPel = nmPelRaw.split(/\r?\n/)[0].trim();
+  if (nmPel) {
+    lines.push(p() + "Pembeli  " + spasiStr("", 5) + ":" + spasiStr(nmPel, 30));
   }
 
-  if (data.nm_member) {
-    lines.push(p() + "Member   " + spasiStr("", 5) + ":" + spasiStr(data.nm_member, 30));
-    const poinEarned = parseAmount(data.poin_earned);
-    if (poinEarned > 0) {
-      lines.push(
-        p() + "Poin Dapat" + spasiStr("", 3) + ":" +
-        spasiStr(formatNumber(poinEarned) + " Poin", 30)
-      );
+  // Member + Poin Saldo hanya jika ada member (tanpa Poin Dapat, tanpa Alamat)
+  let nmMember = String(data.nm_member || data.member || "").trim();
+  if (!nmMember && Number(data.has_member) === 1) {
+    // fallback parsing dari nm_pel multi-line lama
+    const linesPel = nmPelRaw.split(/\r?\n/);
+    for (let i = 0; i < linesPel.length; i++) {
+      const m = linesPel[i].match(/^\s*Member\s*:\s*(.+)$/i);
+      if (m) nmMember = m[1].trim();
     }
-    const poinSaldo = parseAmount(data.poin_saldo);
+  }
+  if (nmMember) {
+    lines.push(p() + "Member   " + spasiStr("", 5) + ":" + spasiStr(nmMember, 30));
+    const poinSaldo = parseAmount(
+      data.poin_saldo != null ? data.poin_saldo : data.poin
+    );
     lines.push(
       p() + "Poin Saldo" + spasiStr("", 3) + ":" +
-      spasiStr(formatNumber(poinSaldo) + " Poin", 30)
+      spasiStr(formatNumber(poinSaldo), 30)
     );
   }
 
